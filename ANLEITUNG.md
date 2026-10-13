@@ -189,18 +189,36 @@ Beispiel: `7` SHIFT `RCL` `(−)` speichert 7 in A. Danach ergibt ALPHA `(−)` 
 
 ## 8. Einstellungen (SETUP)
 
-**SHIFT MODE** öffnet das SETUP. Wähle mit der Zifferntaste, mit ▲ ▼ blätterst du.
+**SHIFT MODE** öffnet das SETUP. Es hat wie am Gerät zwei Seiten mit je 2 Spalten × 4 Zeilen. Der kleine Pfeil oben rechts zeigt, dass es eine weitere Seite gibt. **▼** blättert zu Seite 2, **▲** zurück. Auf jeder Seite beginnt die Nummerierung bei 1. Gewählt wird mit der Zifferntaste, `AC` schließt.
+
+**Seite 1**
 
 | Nr. | Einstellung | Wirkung |
 |---|---|---|
-| 1 | Deg | Winkel in Grad (Standard) |
-| 2 | Rad | Winkel im Bogenmaß |
-| 3 | Gra | Winkel in Gon |
-| 4 | Fix | feste Nachkommastellen, danach Ziffer 0–9 |
-| 5 | Sci | wissenschaftliche Darstellung mit n Stellen, danach Ziffer 0–9 (0 = 10) |
-| 6 | Norm | Normaldarstellung, danach 1 oder 2 |
-| 7 | ab/c | Brüche gemischt anzeigen (2 ⅓) |
-| 8 | d/c | Brüche unecht anzeigen (7/3, Standard) |
+| 1 | Mth2D | Lehrbuch-Darstellung: Brüche, Wurzeln, Exponenten als Formel, exakte Ergebnisse (Standard) |
+| 2 | Linear | einzeilige Ein- und Ausgabe: Brüche als `1⌟3`, Wurzel als `√(2)`, Ergebnisse als Dezimalzahl |
+| 3 | Deg | Winkel in Grad (Standard) |
+| 4 | Rad | Winkel im Bogenmaß |
+| 5 | Gra | Winkel in Gon |
+| 6 | Fix | feste Nachkommastellen, danach Ziffer 0–9 |
+| 7 | Sci | wissenschaftliche Darstellung mit n Stellen, danach Ziffer 0–9 (0 = 10) |
+| 8 | Norm | Normaldarstellung, danach 1 oder 2 |
+
+**Seite 2** (▼)
+
+| Nr. | Einstellung | Wirkung |
+|---|---|---|
+| 1 | ab/c | Brüche gemischt anzeigen (2 ⅓) |
+| 2 | d/c | Brüche unecht anzeigen (7⁄3, Standard) |
+| 3 | STAT | Häufigkeit? 1:EIN 2:AUS – mit EIN wird im Modus STAT pro Datenpunkt eine Häufigkeit erfasst (siehe Abschnitt 9) |
+| 4 | PerD | Periodische Dezimalzahlen? 1:EIN 2:AUS – mit EIN zeigt S⇔D einen Bruch als periodische Dezimalzahl, z. B. ⅙ → 0,16 mit Strich über der 6 |
+| 5 | AbAut | Abschaltautomatik: 1:10 Min. (Standard) 2:60 Min. ohne Tastendruck, danach mit `ON` wieder einschalten; Speicher bleiben erhalten |
+| 6 | ◀KNTR▶ | Display-Kontrast: ◀ heller, ▶ dunkler, `=` fertig |
+
+**Im Modus Linear:**
+- `▭/▭` fügt das Bruchzeichen ⌟ ein (`1⌟3+1⌟6` = 0,5). SHIFT `▭/▭` erzeugt gemischte Brüche (`2⌟1⌟2`).
+- `√■` wird zu `√(`, `x■` zu `^(`, `x²` zu `²`. Schließende Klammern dürfen am Ende fehlen.
+- Ergebnisse erscheinen als Dezimalzahl, **S⇔D** zeigt einen Bruch in linearer Schreibweise.
 
 Zurücksetzen auf Standard: SHIFT `9` (CLR) → 1:Setup → `=`.
 
@@ -214,7 +232,8 @@ Standardmodus für alle Rechnungen.
 ### STAT – Statistik (eine Variable)
 1. MODE `2` (oder SHIFT `1` aus COMP heraus).
 2. Wert eingeben und **M+** drücken. Der Wert wird gespeichert (Anzeige `n=…`). So für alle Werte wiederholen.
-3. **SHIFT 1** öffnet das Statistikmenü: 1:n 2:x̄ 3:σx 4:sx 5:Σx 6:Σx² 7:minX 8:maxX 9:Daten löschen.
+   Mit Häufigkeit (SETUP Seite 2 → 3:STAT → 1:EIN): Wert, SHIFT `)` (;) und Häufigkeit eingeben, dann **M+**. Beispiel: `5` `;` `3` M+ erfasst die 5 dreimal.
+3. **SHIFT 1** öffnet das Statistikmenü: 1:n 2:x̄ 3:σx 4:sx 5:Σx 6:Σx² 7:minX 8:maxX, mit ▼ auf Seite 2: 1:Daten löschen.
 4. Gewählte Größe wird in die Eingabe übernommen, dann `=`. Sie lässt sich auch in Formeln verwenden, z. B. `x̄ × 2`.
 
 Beispiel: 2 M+ 4 M+ 6 M+, dann SHIFT 1 → 2 (x̄) → `=` → **4**.
@@ -240,12 +259,12 @@ Beispiel: HEX, `FF` `+` `1` `=` → **100**. Mit DEC umgeschaltet erscheint 256.
 
 | Menü | Taste | Inhalt |
 |---|---|---|
-| CONST | SHIFT `7` | 1:c Lichtgeschwindigkeit, 2:h Planck, 3:k Boltzmann, 4:Nᴀ Avogadro, 5:G Gravitation, 6:g Fallbeschleunigung, 7:e Elementarladung, 8:mₑ Elektronenmasse, 9:R Gaskonstante |
-| CONV | SHIFT `8` oder ALPHA `8` | 1:cm▸in 2:in▸cm 3:km▸mile 4:mile▸km 5:kg▸lb 6:lb▸kg 7:°C▸°F 8:°F▸°C 9:km/h▸m/s – wird auf die aktuelle Eingabe bzw. das letzte Ergebnis angewendet |
+| CONST | SHIFT `7` | 1:c Lichtgeschwindigkeit, 2:h Planck, 3:k Boltzmann, 4:Nᴀ Avogadro, 5:G Gravitation, 6:g Fallbeschleunigung, 7:e Elementarladung, 8:mₑ Elektronenmasse, ▼ 1:R Gaskonstante |
+| CONV | SHIFT `8` oder ALPHA `8` | 1:cm▸in 2:in▸cm 3:km▸mile 4:mile▸km 5:kg▸lb 6:lb▸kg 7:°C▸°F 8:°F▸°C, ▼ 1:km/h▸m/s – wird auf die aktuelle Eingabe bzw. das letzte Ergebnis angewendet |
 | CLR | SHIFT `9` | 1:Setup 2:Speicher 3:Alle, Bestätigung mit `=`, Abbruch mit `AC` |
 | DRG▸ | SHIFT `Ans` | Winkeleinheit °, ʳ, ᵍ an einen Wert anhängen |
 
-In allen Menüs wählst du mit der Zifferntaste, blätterst mit ▲ ▼ und schließt mit `AC`.
+In allen Menüs wählst du mit der Zifferntaste und schließt mit `AC`. Menüs zeigen bis zu 8 Einträge pro Seite. ▼/▲ blättert seitenweise, die Nummerierung beginnt auf jeder Seite bei 1.
 
 Beispiel Umrechnung: `2,54` SHIFT `8` `1` → **1** (inch).
 

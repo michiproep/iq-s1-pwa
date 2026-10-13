@@ -307,6 +307,24 @@ export function exactForm(v: number): Exact | null {
 }
 const gcdInt = (a: number, b: number): number => b ? gcdInt(b, a % b) : a;
 
+/**
+ * Periodische Dezimaldarstellung von n/d (n, d > 0): ganzzahliger Teil, Vorperiode, Periode.
+ * null, wenn mehr als `maxDigits` Nachkommastellen nötig wären.
+ */
+export function recurring(n: number, d: number, maxDigits = 10): {int: number; pre: string; rep: string} | null {
+  const int = Math.floor(n / d);
+  let r = n % d, digits = '';
+  const seen = new Map<number, number>();
+  while (r !== 0 && !seen.has(r)) {
+    if (digits.length >= maxDigits) return null;
+    seen.set(r, digits.length);
+    r *= 10; digits += Math.floor(r / d); r %= d;
+  }
+  if (r === 0) return {int, pre: digits, rep: ''};
+  const k = seen.get(r)!;
+  return {int, pre: digits.slice(0, k), rep: digits.slice(k)};
+}
+
 export function fractionText(v: number, mixed: boolean): string | null {
   const f = asFraction(v);
   if (!f) return null;

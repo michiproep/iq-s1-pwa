@@ -24,7 +24,7 @@ Installierbar ist die PWA über HTTPS oder `localhost`. Der Service Worker speic
 ## Tests
 
 ```bash
-npm test                                         # 88 Unit-Tests: Rechenkern, Tastenfolgen, Lehrbuch-Vorlagen
+npm test                                         # 111 Unit-Tests: Rechenkern, Tastenfolgen, Vorlagen, SETUP
 npm run test:e2e -- http://localhost:5173/       # Tippt Tasten per Touch im Browser und prüft die Anzeige
 npm run test:visual -- http://localhost:5173/    # Pixelvergleich mit dem Referenzfoto
 ```
@@ -47,7 +47,7 @@ npm run test:visual -- http://localhost:5173/    # Pixelvergleich mit dem Refere
 
 ## Funktionsumfang (Kurzfassung)
 
-Lehrbuch-Eingabe und -Ausgabe (gestapelte Brüche, Wurzeln, Exponenten, exakte Ergebnisse wie 17√2⁄12), Grundrechenarten, Potenzen, Wurzeln, Logarithmen, Trigonometrie inkl. hyperbolisch, Brüche, Grad-Minuten-Sekunden, Pol/Rec, nPr/nCr, ggT/kgV, Int/Intg, Zufallszahlen, Primfaktorzerlegung, ENG-Notation, Variablen A–F/X/Y/M mit STO/RCL/M±, Verlauf (REPLAY), Modi COMP, STAT, TABLE und BASE-N, SETUP (Deg/Rad/Gra, Fix/Sci/Norm, ab/c oder d/c), Konstanten, Umrechnungen und PC-Tastatur. Details in der [Bedienungsanleitung](ANLEITUNG.md).
+Lehrbuch-Eingabe und -Ausgabe (gestapelte Brüche, Wurzeln, Exponenten, exakte Ergebnisse wie 17√2⁄12), Grundrechenarten, Potenzen, Wurzeln, Logarithmen, Trigonometrie inkl. hyperbolisch, Brüche, Grad-Minuten-Sekunden, Pol/Rec, nPr/nCr, ggT/kgV, Int/Intg, Zufallszahlen, Primfaktorzerlegung, ENG-Notation, Variablen A–F/X/Y/M mit STO/RCL/M±, Verlauf (REPLAY), Modi COMP, STAT, TABLE und BASE-N, SETUP wie am Gerät (Mth2D/Linear, Deg/Rad/Gra, Fix/Sci/Norm, ab/c oder d/c, Häufigkeit, periodische Dezimalzahlen, Abschaltautomatik, Kontrast), Konstanten, Umrechnungen und PC-Tastatur. Details in der [Bedienungsanleitung](ANLEITUNG.md).
 
 ## Einschränkungen
 

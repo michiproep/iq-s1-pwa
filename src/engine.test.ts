@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {evaluateTokens, exactForm, factorize, formatParts, fractionText, toBase, toDMS, type Ctx} from './engine';
+import {evaluateTokens, exactForm, factorize, recurring, formatParts, fractionText, toBase, toDMS, type Ctx} from './engine';
 
 const ctx = (o: Partial<Ctx> = {}): Ctx => ({angle: 'DEG', ans: 0, vars: {}, ...o});
 /** Kurzschreibweise: ein Zeichen = ein Token, Mehrzeichen-Tokens in {} */
@@ -115,4 +115,12 @@ describe('Exakte Formen', () => {
   it('Strukturtoken werden übersetzt', () => {
     expect(evaluateTokens(['F(', '1', 'F|', 'R(', '4', 'R)', 'F)'], {angle: 'DEG', ans: 0, vars: {}}).value).toBe(0.5);
   });
+});
+
+describe('Periodische Dezimalzahlen', () => {
+  it('1/3 = 0,(3)', () => expect(recurring(1, 3)).toEqual({int: 0, pre: '', rep: '3'}));
+  it('1/6 = 0,1(6)', () => expect(recurring(1, 6)).toEqual({int: 0, pre: '1', rep: '6'}));
+  it('22/7 = 3,(142857)', () => expect(recurring(22, 7)).toEqual({int: 3, pre: '', rep: '142857'}));
+  it('3/4 endlich', () => expect(recurring(3, 4)).toEqual({int: 0, pre: '75', rep: ''}));
+  it('zu lange Periode', () => expect(recurring(1, 97)).toBeNull());
 });

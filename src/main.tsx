@@ -4,9 +4,9 @@ import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/700.css';
 import '@fontsource/roboto-condensed/700.css';
 import './style.css';
-import {initialState, press, tableRows, type State} from './calc';
-import {engParts, exactForm, factorize, formatParts, toBase, toDMS} from './engine';
-import {ExactView, Formula} from './natural';
+import {initialState, MENU_PAGE, press, tableRows, type State} from './calc';
+import {asFraction, engParts, exactForm, factorize, formatParts, fractionText, recurring, toBase, toDMS} from './engine';
+import {ExactView, Formula, Recurring} from './natural';
 import {KEYS, type KeySpec, type Label} from './keys';
 
 const REF_W = 478, REF_H = 929;
@@ -29,7 +29,16 @@ function ResultView({s}: {s: State}): ReactNode {
     case 'dms': return toDMS(v);
     case 'eng': { const {mant, exp} = engParts(v, s.engExp); return <>{mant}<span className="e10">×10<sup>{exp}</sup></span></>; }
     case 'dec': return <Num v={v} s={s}/>;
+    case 'per': {
+      const f = asFraction(v), r = f && recurring(f.n, f.d);
+      return r ? <Recurring sign={f.s < 0} {...r}/> : <Num v={v} s={s}/>;
+    }
     default: {
+      if (!s.math2d) {
+        // Linear: Dezimalzahl; S⇔D zeigt den Bruch in linearer Schreibweise
+        const lin = s.view === 'frac' || s.view === 'mixed' ? fractionText(v, s.view === 'mixed' || s.mixedOut) : null;
+        return lin ? lin.replace('-', '−') : <Num v={v} s={s}/>;
+      }
       const e = s.mode === 'COMP' || s.mode === 'STAT' ? exactForm(v) : null;
       return e ? <ExactView e={e} mixed={s.view === 'mixed' || (s.view === 'auto' && s.mixedOut)}/> : <Num v={v} s={s}/>;
     }
@@ -48,7 +57,7 @@ function InputLine({s, prompt}: {s: State; prompt?: string}) {
   });
   const showCursor = !s.shown && !s.error;
   return <div className="input" ref={ref}>{prompt && <span className="prompt">{prompt}</span>}
-    <Formula tokens={s.tokens} cursor={showCursor ? s.cursor : -1} ovr={!s.insert}/></div>;
+    <Formula tokens={s.tokens} cursor={showCursor ? s.cursor : -1} ovr={!s.insert} linear={!s.math2d}/></div>;
 }
 
 const ANGLE = {DEG: 'D', RAD: 'R', GRA: 'G'} as const;
@@ -63,18 +72,27 @@ function Screen({s}: {s: State}) {
     <span className={s.hyp ? '' : 'off'}>hyp</span>
     <span>{s.mode === 'COMP' ? '' : s.mode === 'BASE' ? BASE_NAME[s.base] : s.mode}</span>
     <span className="grow"/>
-    <span>{s.fmt.mode === 'NORM' ? '' : s.fmt.mode}</span><span>{ANGLE[s.angle]}</span><span>Math</span>
+    <span>{s.fmt.mode === 'NORM' ? '' : s.fmt.mode}</span><span>{ANGLE[s.angle]}</span><span className={s.math2d ? '' : 'off'}>Math</span>
   </div>;
   let body: ReactNode;
   if (s.menu) {
     const m = s.menu;
-    body = m.digitPrompt ? <div className="menu"><div className="title">{m.title}</div></div>
-      : <div className="menu">{m.title && <div className="title">{m.title}</div>}
-        {m.title === 'Zurücksetzen?' ? <><div>[=] : Ja</div><div>[AC] : Abbrechen</div></>
-          : <div className="grid">{m.items.slice(m.top, m.top + 6).map((it, i) => <div key={i}>{m.top + i + 1}:{it.label}</div>)}</div>}
+    if (m.contrast) {
+      body = <div className="menu contrast"><div className="title">{m.heading}</div>
+        <div className="cbar"><span>HELL</span><span className="track"><i style={{width: `${s.contrast * 10}%`}}/></span><span>DUNKEL</span></div>
+        <div className="hint">[◀] [▶] ändern · [=] fertig</div></div>;
+    } else if (m.digitPrompt) {
+      body = <div className="menu"><div className="title">{m.heading}</div></div>;
+    } else if (m.title === 'Zurücksetzen?') {
+      body = <div className="menu"><div className="title">{m.heading}</div><div>[=] : Ja</div><div>[AC] : Abbrechen</div></div>;
+    } else {
+      // Wie am Gerät: ohne Überschrift, 2 Spalten × 4 Zeilen, Nummerierung je Seite ab 1, Seitenpfeil oben rechts
+      body = <div className="menu list">{m.heading && <div className="title">{m.heading}</div>}
+        <div className="grid">{m.items.slice(m.top, m.top + MENU_PAGE).map((it, i) => <div key={i}>{i + 1}:{it.label}</div>)}</div>
         {m.top > 0 && <span className="more up">▲</span>}
-        {m.items.length > m.top + 6 && <span className="more">▼</span>}
+        {m.items.length > m.top + MENU_PAGE && <span className="more">▼</span>}
       </div>;
+    }
   } else if (s.info) {
     body = <div className="menu">{s.info.map((l, i) => <div key={i}>{l}</div>)}</div>;
   } else if (s.error) {
@@ -89,7 +107,9 @@ function Screen({s}: {s: State}) {
     body = <><InputLine s={s} prompt={s.mode === 'TABLE' ? PROMPT[s.table.phase] : undefined}/>
       <div className="result">{s.shown && s.result && <ResultView s={s}/>}</div></>;
   }
-  return <div className="lcd on">{ind}{body}</div>;
+  // Kontrast 0–10: unter 5 blasser, über 5 wird der LCD-Hintergrund dunkler (Stufe 5 = Standard)
+  const lcdStyle = {opacity: Math.min(1, 0.4 + s.contrast * 0.12), background: s.contrast > 5 ? `rgba(0,0,0,${(s.contrast - 5) * 0.035})` : undefined};
+  return <div className="lcd on" style={lcdStyle}>{s.menu && !s.menu.digitPrompt && !s.menu.heading ? null : ind}{body}</div>;
 }
 
 function LabelView({l}: {l: Label}) {
@@ -152,6 +172,11 @@ function App() {
     fit(); window.addEventListener('resize', fit);
     return () => window.removeEventListener('resize', fit);
   }, []);
+  useEffect(() => {
+    if (!s.on) return;
+    const t = window.setTimeout(() => setS(st => ({...st, on: false, menu: null, info: null, shift: false, alpha: false})), s.autoOff * 60_000);
+    return () => window.clearTimeout(t);
+  }, [s]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;

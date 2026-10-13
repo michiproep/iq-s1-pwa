@@ -46,8 +46,8 @@ describe('Tastenfolgen', () => {
     const s = run('k1 add k1 eq k2 add k2 eq up');
     expect(s.tokens).toEqual(['1', '+', '1']);
   });
-  it('SETUP Rad', () => expect(run('shift mode k2').angle).toBe('RAD'));
-  it('SETUP Fix 2', () => expect(run('shift mode k4 k2').fmt).toEqual({mode: 'FIX', digits: 2}));
+  it('SETUP Rad', () => expect(run('shift mode k4').angle).toBe('RAD'));
+  it('SETUP Fix 2', () => expect(run('shift mode k6 k2').fmt).toEqual({mode: 'FIX', digits: 2}));
   it('CLR Alle mit Bestätigung', () => {
     const s = run('k5 shift rcl neg shift k9 k3 eq');
     expect(s.vars.A).toBe(0);
@@ -127,4 +127,48 @@ describe('▲▼ im Bruch', () => {
   });
   it('gemischter Bruch', () => expect(value(run('shift frac k2 right k1 down k4 eq'))).toBe(2.25));
   it('außerhalb von Brüchen weiter REPLAY', () => expect(run('k5 eq ac up').tokens).toEqual(['5']));
+});
+
+describe('SETUP wie am Gerät', () => {
+  it('Seite 1: 8 Einträge, Seite 2 per ▼', () => {
+    const s = run('shift mode');
+    expect(s.menu?.items.slice(0, 8).map(i => i.label)).toEqual(['Mth2D', 'Linear', 'Deg', 'Rad', 'Gra', 'Fix', 'Sci', 'Norm']);
+    const p2 = run('down', s);
+    expect(p2.menu?.top).toBe(8);
+    expect(p2.menu?.items.slice(8).map(i => i.label)).toEqual(['ab/c', 'd/c', 'STAT', 'PerD', 'AbAut', '◀KNTR▶']);
+  });
+  it('Seite 2: Nummerierung beginnt bei 1 (1 = ab/c)', () => expect(run('shift mode down k1').mixedOut).toBe(true));
+  it('▲ zurück auf Seite 1', () => expect(run('shift mode down up k4').angle).toBe('RAD'));
+  it('Linear und zurück', () => {
+    expect(run('shift mode k2').math2d).toBe(false); expect(run('shift mode k2 shift mode k1').math2d).toBe(true);
+  });
+  it('Linear: S⇔D wechselt Dezimal → Bruch', () => {
+    const s = run('shift mode k2 k1 div k3 eq');
+    expect(s.view).toBe('auto'); expect(run('sd', s).view).toBe('frac');
+  });
+  it('PerD: S⇔D zeigt periodische Dezimalzahl', () => {
+    const s = run('shift mode down k4 k1 k1 div k3 eq');
+    expect(s.perD).toBe(true); expect(run('sd', s).view).toBe('per'); expect(run('sd sd', s).view).toBe('auto');
+  });
+  it('STAT Häufigkeit: Wert;Anzahl mit M+', () => {
+    const s = run('shift mode down k3 k1 mode k2 k5 shift rpar k3 mplus k2 mplus');
+    expect(s.freq).toBe(true); expect(s.stats).toEqual([5, 5, 5, 2]);
+  });
+  it('AbAut 60 Minuten', () => expect(run('shift mode down k5 k2').autoOff).toBe(60));
+  it('Kontrast mit ◀▶, = beendet', () => {
+    const s = run('shift mode down k6 right right left');
+    expect(s.contrast).toBe(6); expect(s.menu?.contrast).toBe(true); expect(run('eq', s).menu).toBeNull();
+  });
+  it('CLR Setup setzt neue Einstellungen zurück', () => {
+    const s = run('shift mode k2 shift mode down k4 k1 shift k9 k1 eq');
+    expect(s.math2d).toBe(true); expect(s.perD).toBe(false);
+  });
+});
+
+describe('Linear-Eingabe', () => {
+  it('⌟ ist Rechenzeichen: 1⌟3+√(2)', () => {
+    const s = run('shift mode k2 k1 frac k3 add sqrt k2 rpar eq');
+    expect(s.tokens).toEqual(['1', 'frac', '3', '+', '√(', '2', ')']); expect(s.result?.value).toBeCloseTo(1 / 3 + Math.SQRT2);
+  });
+  it('x² linear', () => expect(run('shift mode k2 k3 sq').tokens).toEqual(['3', '²']));
 });

@@ -19,9 +19,10 @@ const Cursor = ({ovr}: {ovr?: boolean}) => <span className={ovr ? 'cursor ovr' :
 
 /**
  * Stellt eine Tokenfolge in Lehrbuchform dar (Brüche gestapelt, Wurzeln mit Überstrich,
- * Exponenten hochgestellt). `cursor` < 0 blendet den Cursor aus.
+ * Exponenten hochgestellt) oder mit `linear` einzeilig wie im SETUP „Linear“.
+ * `cursor` < 0 blendet den Cursor aus.
  */
-export function Formula({tokens, cursor, ovr}: {tokens: string[]; cursor: number; ovr?: boolean}) {
+export function Formula({tokens, cursor, ovr, linear}: {tokens: string[]; cursor: number; ovr?: boolean; linear?: boolean}) {
   let i = 0, key = 0;
   const cur = () => <Cursor key={`c${key++}`} ovr={ovr}/>;
 
@@ -31,7 +32,7 @@ export function Formula({tokens, cursor, ovr}: {tokens: string[]; cursor: number
       if (i === cursor) out.push(cur());
       const t = tokens[i];
       if (isOpen(t)) out.push(group(t));
-      else { out.push(<span key={`t${key++}`}>{tokenDisplay(t)}</span>); i++; }
+      else { out.push(<span key={`t${key++}`} className={t === 'frac' ? 'lf' : undefined}>{tokenDisplay(t)}</span>); i++; }
     }
     if (i === cursor) out.push(cur());
     return out;
@@ -39,6 +40,7 @@ export function Formula({tokens, cursor, ovr}: {tokens: string[]; cursor: number
   /** Ein Eingabefeld der Vorlage; leer erscheint ein Platzhalterkästchen. */
   function slot(): ReactNode {
     const start = i, nodes = seq();
+    if (linear) return nodes;
     return i === start ? <>{nodes}<span className="ph"/></> : nodes;  // leeres Feld: Kästchen (ggf. mit Cursor)
   }
   /** Trenner bzw. Schluss-Token überspringen (fehlt er, wird nichts verbraucht). */
@@ -47,6 +49,7 @@ export function Formula({tokens, cursor, ovr}: {tokens: string[]; cursor: number
   function group(t: string): ReactNode {
     const k = key++;
     i++;
+    if (linear) return <span key={k}>{linearGroup(t)}</span>;
     switch (t) {
       case 'F(': { const n = slot(); skip(); const d = slot(); skip(); return <Fr key={k} num={n} den={d}/>; }
       case 'M(': { const w = slot(); skip(); const n = slot(); skip(); const d = slot(); skip(); return <span key={k} className="nm">{w}<Fr num={n} den={d}/></span>; }
@@ -60,11 +63,37 @@ export function Formula({tokens, cursor, ovr}: {tokens: string[]; cursor: number
     return null;
   }
 
+  /** Einzeilige Schreibweise wie im Linear-Modus des Geräts. */
+  function linearGroup(t: string): ReactNode {
+    // x², x³, x⁻¹ bleiben hochgestellt, sofern der Cursor nicht im Exponenten steht
+    const short: Record<string, string> = {'2': '²', '3': '³', 'neg1': '⁻¹'};
+    if (t === 'P(' && (cursor < i || cursor > i + 2)) {
+      const body = tokens[i] === 'neg' ? 'neg' + tokens[i + 1] : tokens[i];
+      const len = tokens[i] === 'neg' ? 2 : 1;
+      if (short[body] && tokens[i + len] === 'P)') { i += len + 1; return short[body]; }
+    }
+    switch (t) {
+      case 'F(': { const n = slot(); skip(); const d = slot(); skip(); return <>{n}⌟{d}</>; }
+      case 'M(': { const w = slot(); skip(); const n = slot(); skip(); const d = slot(); skip(); return <>{w}⌟{n}⌟{d}</>; }
+      case 'R(': { const r = slot(); skip(); return <>√({r})</>; }
+      case 'R3(': { const r = slot(); skip(); return <>³√({r})</>; }
+      case 'N(': { const n = slot(); skip(); const r = slot(); skip(); return <>{n}ˣ√({r})</>; }
+      case 'P(': { const e = slot(); skip(); return <>^({e})</>; }
+      case 'L(': { const a = slot(); skip(); const b = slot(); skip(); return <>log({a};{b})</>; }
+      case 'A(': { const a = slot(); skip(); return <>Abs({a})</>; }
+    }
+    return null;
+  }
+
   const out = seq();
   // Verwaiste Trenner/Schluss-Tokens (sollte nicht vorkommen) überspringen und weiter darstellen
   while (i < tokens.length) { i++; out.push(...seq()); }
   return <>{out}</>;
 }
+
+/** Periodische Dezimalzahl mit Überstrich über der Periode, z. B. 0,1‾6‾. */
+export const Recurring = ({sign, int, pre, rep}: {sign: boolean; int: number; pre: string; rep: string}) =>
+  <>{sign && '−'}{int}{(pre || rep) && ','}{pre}{rep && <span className="ovl">{rep}</span>}</>;
 
 /** Exaktes Ergebnis in Lehrbuchform. */
 export function ExactView({e, mixed}: {e: Exact; mixed: boolean}) {

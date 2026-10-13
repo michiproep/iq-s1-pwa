@@ -1,19 +1,25 @@
 import {
   CONSTANTS, CONVERSIONS, evaluateTokens, factorize, type Angle, type Base, type NumFormat, type Result, engStart, VARS,
-  isClose, isOpen, isSep, isStruct, structGroup,
+  asFraction, isClose, isOpen, isSep, isStruct, structGroup,
 } from './engine';
 
 export type Mode = 'COMP' | 'STAT' | 'TABLE' | 'BASE';
-export type View = 'auto' | 'dec' | 'frac' | 'mixed' | 'eng' | 'dms' | 'fact';
+export type View = 'auto' | 'dec' | 'frac' | 'mixed' | 'eng' | 'dms' | 'fact' | 'per';
 /** ins: einzelnes Token · tpl: Vorlage mit Cursorposition `at` (cont: nach Ergebnis mit Ans fortsetzen) · cmd: Befehl */
-type Action = {ins: string} | {tpl: string[]; at: number; cont?: boolean} | {cmd: string};
+type Action = {ins: string} | {tpl: string[]; at: number; cont?: boolean; lin: string} | {cmd: string};
+// lin: Token, das im SETUP „Linear“ statt der Vorlage eingefügt wird (wie am Gerät)
 export interface MenuItem {label: string; act: (s: State) => State}
-export interface Menu {title?: string; items: MenuItem[]; top: number; digitPrompt?: (s: State, d: number) => State | null}
+/** title: Kennung (wird nicht angezeigt) · heading: angezeigte Frage · contrast: Kontrast-Einstellbildschirm */
+export interface Menu {title?: string; heading?: string; items: MenuItem[]; top: number; digitPrompt?: (s: State, d: number) => State | null; contrast?: boolean}
+/** Einträge pro Menüseite (2 Spalten × 4 Zeilen wie am Gerät). */
+export const MENU_PAGE = 8;
 interface HistoryEntry {tokens: string[]; result: Result}
 type TablePhase = 'f' | 'start' | 'end' | 'step' | 'list';
 
 export interface State {
   on: boolean; mode: Mode; base: Base; angle: Angle; fmt: NumFormat; mixedOut: boolean;
+  /** SETUP: Mth2D (Lehrbuch) oder Linear, Häufigkeit in STAT, periodische Dezimalzahlen, Abschaltautomatik (Minuten), Kontrast 0–10 */
+  math2d: boolean; freq: boolean; perD: boolean; autoOff: 10 | 60; contrast: number;
   tokens: string[]; cursor: number; insert: boolean; prefill?: boolean;
   shift: boolean; alpha: boolean; hyp: boolean; pending: 'STO' | 'RCL' | null;
   shown: boolean; result: Result | null; view: View; engExp: number; error: string | null; info: string[] | null;
@@ -25,6 +31,7 @@ export interface State {
 
 export const initialState = (): State => ({
   on: true, mode: 'COMP', base: 10, angle: 'DEG', fmt: {mode: 'NORM', digits: 1}, mixedOut: false,
+  math2d: true, freq: false, perD: false, autoOff: 10, contrast: 5,
   tokens: [], cursor: 0, insert: true, shift: false, alpha: false, hyp: false, pending: null,
   shown: false, result: null, view: 'auto', engExp: 0, error: null, info: null,
   ans: 0, vars: Object.fromEntries(VARS.map(v => [v, 0])), history: [], histPos: -1, stats: [],
@@ -35,11 +42,11 @@ export const initialState = (): State => ({
 export const KEYMAP: Record<string, {p: Action; s?: Action; a?: Action; v?: string; b?: Action}> = {
   shift: {p: {cmd: 'SHIFT'}}, alpha: {p: {cmd: 'ALPHA'}}, mode: {p: {cmd: 'MODE'}, s: {cmd: 'SETUP'}}, on: {p: {cmd: 'ON'}},
   up: {p: {cmd: 'UP'}}, down: {p: {cmd: 'DOWN'}}, left: {p: {cmd: 'LEFT'}}, right: {p: {cmd: 'RIGHT'}},
-  abs: {p: {tpl: ['A(', 'A)'], at: 1}, s: {ins: '÷R'}}, cube: {p: {tpl: ['P(', '3', 'P)'], at: 3, cont: true}, a: {ins: ':'}},
-  inv: {p: {tpl: ['P(', 'neg', '1', 'P)'], at: 4, cont: true}, s: {ins: '!'}}, logab: {p: {tpl: ['L(', 'L|', 'L)'], at: 1}},
-  frac: {p: {cmd: 'FRAC'}, s: {tpl: ['M(', 'M|1', 'M|2', 'M)'], at: 1}}, sqrt: {p: {tpl: ['R(', 'R)'], at: 1}, s: {tpl: ['R3(', 'R)'], at: 1}},
-  sq: {p: {tpl: ['P(', '2', 'P)'], at: 3, cont: true}, b: {cmd: 'DEC'}}, pow: {p: {tpl: ['P(', 'P)'], at: 1, cont: true}, s: {tpl: ['N(', 'N|', 'N)'], at: 1}, b: {cmd: 'HEX'}},
-  log: {p: {ins: 'log('}, s: {tpl: ['1', '0', 'P(', 'P)'], at: 3}, b: {cmd: 'BIN'}}, ln: {p: {ins: 'ln('}, s: {tpl: ['ℯ', 'P(', 'P)'], at: 2}, b: {cmd: 'OCT'}},
+  abs: {p: {tpl: ['A(', 'A)'], at: 1, lin: 'Abs('}, s: {ins: '÷R'}}, cube: {p: {tpl: ['P(', '3', 'P)'], at: 3, cont: true, lin: '³'}, a: {ins: ':'}},
+  inv: {p: {tpl: ['P(', 'neg', '1', 'P)'], at: 4, cont: true, lin: '⁻¹'}, s: {ins: '!'}}, logab: {p: {tpl: ['L(', 'L|', 'L)'], at: 1, lin: 'logab('}},
+  frac: {p: {cmd: 'FRAC'}, s: {tpl: ['M(', 'M|1', 'M|2', 'M)'], at: 1, lin: 'frac'}}, sqrt: {p: {tpl: ['R(', 'R)'], at: 1, lin: '√('}, s: {tpl: ['R3(', 'R)'], at: 1, lin: '³√('}},
+  sq: {p: {tpl: ['P(', '2', 'P)'], at: 3, cont: true, lin: '²'}, b: {cmd: 'DEC'}}, pow: {p: {tpl: ['P(', 'P)'], at: 1, cont: true, lin: '^('}, s: {tpl: ['N(', 'N|', 'N)'], at: 1, lin: 'ˣ√('}, b: {cmd: 'HEX'}},
+  log: {p: {ins: 'log('}, s: {tpl: ['1', '0', 'P(', 'P)'], at: 3, lin: '10^('}, b: {cmd: 'BIN'}}, ln: {p: {ins: 'ln('}, s: {tpl: ['ℯ', 'P(', 'P)'], at: 2, lin: 'e^('}, b: {cmd: 'OCT'}},
   neg: {p: {ins: 'neg'}, a: {ins: 'varA'}, v: 'A', b: {ins: 'hexA'}},
   dms: {p: {ins: '°'}, s: {cmd: 'FACT'}, a: {ins: 'varB'}, v: 'B', b: {ins: 'hexB'}},
   hyp: {p: {cmd: 'HYP'}, a: {ins: 'varC'}, v: 'C', b: {ins: 'hexC'}},
@@ -71,8 +78,12 @@ const msg = (s: State, ...lines: string[]): State => ({...s, info: lines});
 function menu(items: [string, (s: State) => State][], title?: string): Menu {
   return {title, top: 0, items: items.map(([label, act]) => ({label, act}))};
 }
-function digitPrompt(title: string, f: (s: State, d: number) => State | null): Menu {
-  return {title, items: [], top: 0, digitPrompt: f};
+function digitPrompt(heading: string, f: (s: State, d: number) => State | null): Menu {
+  return {heading, items: [], top: 0, digitPrompt: f};
+}
+/** Auswahl mit angezeigter Frage, z. B. „Häufigkeit?“ 1:EIN 2:AUS. */
+function choice(heading: string, items: [string, (s: State) => State][]): Menu {
+  return {...menu(items), heading};
 }
 
 const insert = (s: State, tok: string): State => insertSeq(s, [tok], 1, CONTINUES.has(tok));
@@ -190,11 +201,14 @@ function trig(s: State, name: 'sin' | 'cos' | 'tan', inverse: boolean): State {
 
 function reset(s: State, what: 'setup' | 'memory' | 'all'): State {
   const fresh = initialState();
-  if (what === 'setup') return {...s, angle: fresh.angle, fmt: fresh.fmt, mixedOut: false, menu: null, info: ['Setup gelöscht']};
+  if (what === 'setup') return {
+    ...s, angle: fresh.angle, fmt: fresh.fmt, mixedOut: false, math2d: true, freq: false, perD: false, autoOff: 10, contrast: 5,
+    menu: null, info: ['Setup gelöscht'],
+  };
   if (what === 'memory') return {...s, vars: fresh.vars, ans: 0, stats: [], menu: null, info: ['Speicher gelöscht']};
   return {...fresh, rand: s.rand, info: ['Alles zurückgesetzt']};
 }
-const confirm = (what: 'setup' | 'memory' | 'all'): Menu => menu([['= : Ja', s => reset(s, what)]], 'Zurücksetzen?');
+const confirm = (what: 'setup' | 'memory' | 'all'): Menu => ({...menu([['= : Ja', s => reset(s, what)]], 'Zurücksetzen?'), heading: 'Zurücksetzen?'});
 
 function modeMenu(): Menu {
   const to = (mode: Mode) => (s: State): State => ({
@@ -206,11 +220,17 @@ function modeMenu(): Menu {
 function setupMenu(): Menu {
   const ang = (angle: Angle) => (s: State): State => ({...s, angle, menu: null});
   return menu([
+    ['Mth2D', s => ({...s, math2d: true, menu: null})], ['Linear', s => ({...s, math2d: false, menu: null})],
     ['Deg', ang('DEG')], ['Rad', ang('RAD')], ['Gra', ang('GRA')],
     ['Fix', s => ({...s, menu: digitPrompt('Fix 0~9?', (st, d) => ({...st, fmt: {mode: 'FIX', digits: d}, menu: null, shown: st.shown}))})],
     ['Sci', s => ({...s, menu: digitPrompt('Sci 0~9?', (st, d) => ({...st, fmt: {mode: 'SCI', digits: d === 0 ? 10 : d}, menu: null}))})],
     ['Norm', s => ({...s, menu: digitPrompt('Norm 1~2?', (st, d) => d === 1 || d === 2 ? {...st, fmt: {mode: 'NORM', digits: d}, menu: null} : null)})],
+    // Seite 2
     ['ab/c', s => ({...s, mixedOut: true, menu: null})], ['d/c', s => ({...s, mixedOut: false, menu: null})],
+    ['STAT', s => ({...s, menu: choice('Häufigkeit?', [['EIN', st => ({...st, freq: true, menu: null})], ['AUS', st => ({...st, freq: false, menu: null})]])})],
+    ['PerD', s => ({...s, menu: choice('Periodische Dez.?', [['EIN', st => ({...st, perD: true, menu: null})], ['AUS', st => ({...st, perD: false, menu: null})]])})],
+    ['AbAut', s => ({...s, menu: choice('Abschaltautomatik', [['10 Min.', st => ({...st, autoOff: 10, menu: null})], ['60 Min.', st => ({...st, autoOff: 60, menu: null})]])})],
+    ['◀KNTR▶', s => ({...s, menu: {heading: 'KONTRAST', items: [], top: 0, contrast: true}})],
   ], 'SETUP');
 }
 
@@ -259,7 +279,7 @@ function command(s: State, cmd: string): State {
       }
       return {...s, tokens: s.tokens.filter((_, i) => i !== s.cursor - 1), cursor: s.cursor - 1};
     case 'INS': return {...s, insert: !s.insert};
-    case 'FRAC': return fracTemplate(s);
+    case 'FRAC': return s.math2d ? fracTemplate(s) : insert(s, 'frac');
     case 'LEFT':
       if (s.mode === 'TABLE' && s.table.phase === 'list') return s;
       if (s.shown) return {...s, shown: false, cursor: s.tokens.length};
@@ -286,9 +306,11 @@ function command(s: State, cmd: string): State {
     }
     case '=': return evaluate(s);
     case '≈': { const r = evaluate(s); return r.shown ? {...r, view: 'dec'} : r; }
-    case 'SD':
-      if (!s.shown) { const r = evaluate(s); return r.shown ? {...r, view: 'dec'} : r; }
-      return {...s, view: s.view === 'dec' ? 'auto' : 'dec'};
+    case 'SD': {
+      const r = s.shown ? s : evaluate(s);
+      if (!r.shown || !r.result) return r;
+      return {...r, view: nextSD(r, s.shown)};
+    }
     case 'MIXED': return s.shown ? {...s, view: s.view === 'mixed' ? 'frac' : 'mixed'} : s;
     case 'ENG': case 'ENGL': {
       const base = s.shown ? s : evaluate(s);
@@ -300,17 +322,38 @@ function command(s: State, cmd: string): State {
       if (!s.shown || !s.result) return s;
       try { factorize(s.result.value); return {...s, view: 'fact'}; } catch { return {...s, error: 'Math ERROR'}; }
     case 'M+': case 'M-': {
+      if (s.mode === 'STAT' && cmd === 'M+' && !s.shown) {
+        // Datenpunkt erfassen; mit Häufigkeit (SETUP STAT EIN) als „Wert;Häufigkeit“
+        const sep = s.freq ? s.tokens.indexOf(';') : -1;
+        let val: number, count = 1;
+        try {
+          if (sep > 0) {
+            val = evaluateTokens(s.tokens.slice(0, sep), ctxOf(s)).value;
+            count = evaluateTokens(s.tokens.slice(sep + 1), ctxOf(s)).value;
+          } else val = s.tokens.length ? evaluateTokens(s.tokens, ctxOf(s)).value : s.ans;
+        } catch (e) { return {...s, error: e instanceof Error ? e.message : 'Math ERROR'}; }
+        if (!Number.isInteger(count) || count < 1 || count > 999) return {...s, error: 'Math ERROR'};
+        const stats = [...s.stats, ...Array<number>(count).fill(val)];
+        return {...s, stats, tokens: [], cursor: 0, shown: false, result: null, info: [`n=${stats.length}`, 'Datenpunkt gespeichert']};
+      }
       const base = s.tokens.length && !s.shown ? evaluate(s) : s.tokens.length ? s : {...s, result: {kind: 'num', value: s.ans} as Result, shown: true};
       if (base.error || !base.result) return base;
       const v = base.result.value;
-      if (s.mode === 'STAT' && cmd === 'M+') {
-        const stats = [...s.stats, v];
-        return {...base, stats, tokens: [], cursor: 0, shown: false, result: null, info: [`n=${stats.length}`, 'Datenpunkt gespeichert']};
-      }
       return {...base, vars: {...base.vars, M: base.vars.M + (cmd === 'M+' ? v : -v)}, view: 'auto'};
     }
   }
   return s;
+}
+
+/**
+ * S⇔D: Mth2D wechselt exakt ↔ Dezimal (mit PerD: Bruch ↔ periodische Dezimalzahl),
+ * Linear wechselt Dezimal ↔ linearer Bruch. wasShown = false: erster Druck direkt nach der Eingabe.
+ */
+function nextSD(s: State, wasShown: boolean): View {
+  const cur: View = wasShown ? s.view : 'auto';
+  if (!s.math2d) return cur === 'frac' ? 'auto' : 'frac';
+  if (s.perD && s.result?.kind === 'num' && asFraction(s.result.value)) return cur === 'per' ? 'auto' : 'per';
+  return cur === 'dec' || cur === 'per' ? 'auto' : 'dec';
 }
 
 /** Verarbeitet einen Tastendruck und liefert den neuen Zustand. */
@@ -331,11 +374,18 @@ export function press(state: State, key: string): State {
       if (d === undefined) return s;
       return m.digitPrompt(clearFlags(s), d) ?? s;
     }
-    if (key === 'up') return {...s, menu: {...m, top: Math.max(0, m.top - 2)}};
-    if (key === 'down') return {...s, menu: {...m, top: m.top + 6 < m.items.length ? m.top + 2 : m.top}};
+    if (m.contrast) {
+      if (key === 'left' || key === 'right') return {...s, contrast: Math.max(0, Math.min(10, s.contrast + (key === 'left' ? -1 : 1)))};
+      if (key === 'eq') return clearFlags({...s, menu: null});
+      return s;
+    }
+    // Seitenweise blättern; die Nummerierung beginnt auf jeder Seite bei 1
+    if (key === 'up') return {...s, menu: {...m, top: Math.max(0, m.top - MENU_PAGE)}};
+    if (key === 'down') return {...s, menu: {...m, top: m.top + MENU_PAGE < m.items.length ? m.top + MENU_PAGE : m.top}};
     if (m.title === 'Zurücksetzen?') return key === 'eq' ? m.items[0].act(clearFlags(s)) : s;
     const d = DIGIT_KEY[key];
-    if (d && m.items[d - 1]) return m.items[d - 1].act(clearFlags(s));
+    const item = d && d <= MENU_PAGE ? m.items[m.top + d - 1] : undefined;
+    if (item) return item.act(clearFlags(s));
     if (key === 'mode') return command(clearFlags(s), s.shift ? 'SETUP' : 'MODE');
     return s;
   }
@@ -372,6 +422,6 @@ export function press(state: State, key: string): State {
   if (s.mode === 'BASE' && (('ins' in act && [',', 'E', '°'].includes(act.ins)) || 'tpl' in act || ('cmd' in act && act.cmd === 'FRAC'))) return s;
   if (s.shown && s.result?.kind === 'num' && 'ins' in act && act.ins === '°') return {...s, view: s.view === 'dms' ? 'auto' : 'dms'};
   if ('ins' in act) return insert(s, act.ins);
-  if ('tpl' in act) return insertSeq(s, act.tpl, act.at, !!act.cont);
+  if ('tpl' in act) return s.math2d ? insertSeq(s, act.tpl, act.at, !!act.cont) : insert(s, act.lin);
   return command(act.cmd === '=' || act.cmd === 'FRAC' ? s : {...s, prefill: false}, act.cmd);
 }

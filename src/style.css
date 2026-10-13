@@ -93,9 +93,17 @@ main { position: relative; flex: none; }
 .pair { display: inline-flex; flex-direction: column; align-items: flex-end; font-size: .62em; line-height: 1.25; }
 .menu { margin-top: 6px; font-size: 22px; line-height: 28px; position: relative; flex: 1; }
 .menu .title { font-weight: 700; }
-.menu .more { position: absolute; right: 0; bottom: 0; font-size: 13px; line-height: 14px; }
-.menu .more.up { bottom: auto; top: 0; }
-.menu .grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 10px; font-size: 18px; line-height: 27px; }
+.menu .more { position: absolute; right: -2px; top: -4px; font-size: 10px; line-height: 10px; }
+.menu .more.up { top: -4px; right: 10px; }
+.menu .grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 10px; font-size: 21px; line-height: 32px; }
+.menu.list { margin-top: 4px; }
+.menu.contrast { text-align: center; }
+.cbar { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; margin: 10px 0 8px; }
+.cbar .track { flex: 1; height: 14px; border: 2px solid currentColor; display: block; }
+.cbar .track i { display: block; height: 100%; background: currentColor; }
+.menu .hint { font-size: 13px; line-height: 18px; }
+.lf { display: inline-block; margin: 0 1px 0 -.18em; }
+.ovl { text-decoration: overline; text-decoration-thickness: 2px; }
 .menu .grid div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tbl { border-collapse: collapse; font-size: 18px; line-height: 23px; width: 100%; margin-top: 4px; }
 .tbl th, .tbl td { border: 1px solid #555; padding: 0 5px; text-align: right; }
