@@ -272,8 +272,12 @@ export function asFraction(v: number): {s: number; n: number; d: number} | null 
   } catch { return null; }
 }
 
-/** Exakte Darstellung: Bruch, Wurzelterm s·n√r/d oder π-Vielfaches s·nπ/d. */
-export type Exact = {kind: 'frac'; s: number; n: number; d: number} | {kind: 'surd'; s: number; n: number; r: number; d: number} | {kind: 'pi'; s: number; n: number; d: number};
+/**
+ * Exakte Darstellung: Bruch, Wurzelterm s·n√r/d, π-Vielfaches s·nπ/d oder
+ * Summe (a + b₁√r₁ + b₂√r₂)/d mit höchstens zwei Wurzeltermen (a darf 0 sein).
+ */
+export type Exact = {kind: 'frac'; s: number; n: number; d: number} | {kind: 'surd'; s: number; n: number; r: number; d: number}
+  | {kind: 'pi'; s: number; n: number; d: number} | {kind: 'sum'; a: number; terms: {b: number; r: number}[]; d: number};
 
 function ratApprox(v: number, maxDen: number, tol: number): {n: number; d: number} | null {
   for (let d = 1; d <= maxDen; d++) {
@@ -303,9 +307,64 @@ export function exactForm(v: number): Exact | null {
   // π-Vielfaches
   const pi = ratApprox(a / Math.PI, 100, 1e-12);
   if (pi && pi.n > 0 && pi.n <= 999) return {kind: 'pi', s, n: pi.n, d: pi.d};
-  return null;
+  return sumForm(v);
 }
 const gcdInt = (a: number, b: number): number => b ? gcdInt(b, a % b) : a;
+
+/** Quadratfreie Zahlen 2…99 (mögliche Radikanden). */
+const SQUAREFREE = Array.from({length: 98}, (_, i) => i + 2).filter(n => {
+  for (let k = 2; k * k <= n; k++) if (n % (k * k) === 0) return false;
+  return true;
+});
+const sumCache = new Map<number, Exact | null>();
+
+/**
+ * Sucht v = (a + b√r)/d bzw. v = (b₁√r₁ + b₂√r₂)/d mit kleinen ganzen Zahlen (kleinster Nenner zuerst).
+ * Die Toleranz ist so eng gewählt, dass zufällige Treffer praktisch ausgeschlossen sind.
+ */
+function sumForm(v: number): Exact | null {
+  if (sumCache.has(v)) return sumCache.get(v)!;
+  const result = findSum(v);
+  if (sumCache.size > 200) sumCache.clear();
+  sumCache.set(v, result);
+  return result;
+}
+function findSum(v: number): Exact | null {
+  const close = (x: number, y: number) => Math.abs(x - y) <= 1e-11 * Math.max(1, Math.abs(y));
+  const norm = (a: number, terms: {b: number; r: number}[], d: number): Exact => {
+    const g = [a, d, ...terms.map(t => t.b)].reduce((x, y) => gcdInt(Math.abs(x), Math.abs(y)));
+    return {kind: 'sum', a: a / g, d: d / g, terms: terms.map(t => ({b: t.b / g, r: t.r}))};
+  };
+  // Rationalteil + ein Wurzelterm: v·d = a + b√r
+  for (let d = 1; d <= 60; d++) {
+    const vd = v * d;
+    for (const r of SQUAREFREE) {
+      const sr = Math.sqrt(r);
+      for (let b = -60; b <= 60; b++) {
+        if (b === 0) continue;
+        const a = Math.round(vd - b * sr);
+        if (a !== 0 && Math.abs(a) <= 9999 && close(a + b * sr, vd)) return norm(a, [{b, r}], d);
+      }
+    }
+  }
+  // Zwei Wurzelterme: v·d = b₁√r₁ + b₂√r₂ (z. B. sin 75° = (√6+√2)/4)
+  const radicands = SQUAREFREE.filter(r => r <= 50);
+  for (let d = 1; d <= 24; d++) {
+    const vd = v * d;
+    for (let i = 0; i < radicands.length; i++) {
+      const s1 = Math.sqrt(radicands[i]);
+      for (let j = i + 1; j < radicands.length; j++) {
+        const s2 = Math.sqrt(radicands[j]);
+        for (let b1 = -24; b1 <= 24; b1++) {
+          if (b1 === 0) continue;
+          const b2 = Math.round((vd - b1 * s1) / s2);
+          if (b2 !== 0 && Math.abs(b2) <= 99 && close(b1 * s1 + b2 * s2, vd)) return norm(0, [{b: b1, r: radicands[i]}, {b: b2, r: radicands[j]}], d);
+        }
+      }
+    }
+  }
+  return null;
+}
 
 /**
  * Periodische Dezimaldarstellung von n/d (n, d > 0): ganzzahliger Teil, Vorperiode, Periode.

@@ -124,3 +124,25 @@ describe('Periodische Dezimalzahlen', () => {
   it('3/4 endlich', () => expect(recurring(3, 4)).toEqual({int: 0, pre: '75', rep: ''}));
   it('zu lange Periode', () => expect(recurring(1, 97)).toBeNull());
 });
+
+describe('Exakte Summen', () => {
+  const sum = (a: number, terms: [number, number][], d: number) => ({kind: 'sum', a, d, terms: terms.map(([b, r]) => ({b, r}))});
+  it('1+√2', () => expect(exactForm(1 + Math.SQRT2)).toEqual(sum(1, [[1, 2]], 1)));
+  it('2−√3', () => expect(exactForm(2 - Math.sqrt(3))).toEqual(sum(2, [[-1, 3]], 1)));
+  it('(1+√5)/4 = cos 36°', () => expect(exactForm(Math.cos(Math.PI / 5))).toEqual(sum(1, [[1, 5]], 4)));
+  it('(3+2√2)/6', () => expect(exactForm((3 + 2 * Math.SQRT2) / 6)).toEqual(sum(3, [[2, 2]], 6)));
+  it('−1−√2', () => expect(exactForm(-1 - Math.SQRT2)).toEqual(sum(-1, [[-1, 2]], 1)));
+  it('sin 75° = (√2+√6)/4', () => expect(exactForm(Math.sin(75 * Math.PI / 180))).toEqual(sum(0, [[1, 2], [1, 6]], 4)));
+  it('√2+√3', () => expect(exactForm(Math.SQRT2 + Math.sqrt(3))).toEqual(sum(0, [[1, 2], [1, 3]], 1)));
+  it('Einzelterme bleiben unverändert', () => {
+    expect(exactForm(Math.SQRT2)?.kind).toBe('surd'); expect(exactForm(0.25)?.kind).toBe('frac'); expect(exactForm(Math.PI / 2)?.kind).toBe('pi');
+  });
+  it('keine Scheinform für ln 2, e, π+1', () => {
+    expect(exactForm(Math.LN2)).toBeNull(); expect(exactForm(Math.E)).toBeNull(); expect(exactForm(Math.PI + 1)).toBeNull();
+  });
+  it('keine Scheinform für eingetippte Näherung 2,41421356', () => expect(exactForm(2.41421356)).toBeNull());
+  it('Ergebnis über Tasten: 1/2 + √3/2', () => {
+    const v = evaluateTokens(['F(', '1', 'F|', '2', 'F)', '+', 'F(', 'R(', '3', 'R)', 'F|', '2', 'F)'], {angle: 'DEG', ans: 0, vars: {}}).value;
+    expect(exactForm(v)).toEqual(sum(1, [[1, 3]], 2));
+  });
+});

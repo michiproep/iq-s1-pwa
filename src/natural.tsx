@@ -97,6 +97,7 @@ export const Recurring = ({sign, int, pre, rep}: {sign: boolean; int: number; pr
 
 /** Exaktes Ergebnis in Lehrbuchform. */
 export function ExactView({e, mixed}: {e: Exact; mixed: boolean}) {
+  if (e.kind === 'sum') return <SumView e={e}/>;
   const sign = e.s < 0 ? '−' : '';
   if (e.kind === 'frac') {
     if (mixed && e.n > e.d) return <>{sign}{Math.floor(e.n / e.d)}<Fr num={e.n % e.d} den={e.d}/></>;
@@ -106,4 +107,19 @@ export function ExactView({e, mixed}: {e: Exact; mixed: boolean}) {
     ? <>{e.n > 1 && e.n}<Root>{e.r}</Root></>
     : <>{e.n > 1 && e.n}π</>;
   return <>{sign}{e.d === 1 ? num : <Fr num={num} den={e.d}/>}</>;
+}
+
+/**
+ * Summe wie am Gerät: Rationalteil zuerst, danach Wurzelterme (positive zuerst, größerer Radikand zuerst),
+ * bei Nenner > 1 als gemeinsamer Bruch, z. B. (√6+√2)/4 oder (3+2√2)/6.
+ */
+function SumView({e}: {e: Extract<Exact, {kind: 'sum'}>}) {
+  const terms: {c: number; r: number}[] = [...(e.a ? [{c: e.a, r: 1}] : []),
+    ...[...e.terms].sort((x, y) => (y.b > 0 ? 1 : 0) - (x.b > 0 ? 1 : 0) || y.r - x.r).map(t => ({c: t.b, r: t.r}))];
+  const num = terms.map(({c, r}, i) => {
+    const abs = Math.abs(c);
+    const op = c < 0 ? '−' : i > 0 ? '+' : '';
+    return <span key={i}>{op}{r === 1 ? abs : <>{abs > 1 && abs}<Root>{r}</Root></>}</span>;
+  });
+  return e.d === 1 ? <>{num}</> : <Fr num={num} den={e.d}/>;
 }

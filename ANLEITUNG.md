@@ -102,6 +102,7 @@ Beispiel (wie im Gerätedisplay):
   - als **Bruch**, z. B. 1÷3 → ⅓
   - als **Wurzelterm**, z. B. √8 → 2√2, sin 45° → √2⁄2, 4√2⁄3 + 1⁄(6√2) → 17√2⁄12
   - als **π-Vielfaches**, z. B. 3π÷4 → 3π⁄4
+  - als **Summe** aus Rationalteil und bis zu zwei Wurzeltermen, z. B. 1+√2, 1⁄2 + √3⁄2 → (1+√3)⁄2, cos 36° → (1+√5)⁄4, sin 75° → (√6+√2)⁄4
 - Gibt es keine exakte Form, erscheint die Dezimalzahl.
 - **S⇔D** wechselt zwischen exakter Form und Dezimalzahl.
 - **SHIFT =** (≈) berechnet und zeigt direkt die Dezimalzahl.
@@ -295,7 +296,7 @@ Beispiel Umrechnung: `2,54` SHIFT `8` `1` → **1** (inch).
 
 ## 13. Grenzen der Nachbildung
 
-- Die Lehrbuch-Darstellung nutzt eine normale Schrift, nicht die Pixelschrift des LCD. Exakte Ergebnisse gibt es für Brüche, einfache Wurzelterme (a√b⁄c) und π-Vielfache, aber nicht für Summen wie 1+√2.
+- Die Lehrbuch-Darstellung nutzt eine normale Schrift, nicht die Pixelschrift des LCD. Exakte Ergebnisse gibt es für Brüche, Wurzelterme, π-Vielfache und Summen mit höchstens zwei Wurzeltermen (Radikanden bis 99). Größere oder kompliziertere Ausdrücke erscheinen als Dezimalzahl.
 - VERIFY (SHIFT 6), Verteilungen und Regression sind nicht nachgebildet.
 - Es gibt 9 Konstanten und 9 Umrechnungen statt des vollen Umfangs des Originals.
 - Die Ergebnisse sind nicht gegen das Originalgerät geprüft.
