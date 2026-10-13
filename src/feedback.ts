@@ -24,21 +24,12 @@ function release(e: React.PointerEvent<Element>) {
   else el.classList.remove('down');
 }
 
-let iosTick: HTMLLabelElement | null = null;
-
-/** Kurzer Haptik-Tick. Android: Vibration-API. iOS (Safari ab 18) hat keine Vibration-API, löst aber beim
- *  Umschalten eines `<input switch>` einen System-Tick aus – dafür ein unsichtbarer Schalter.
- *  Muss direkt in einem Klick-Handler aufgerufen werden; wo nichts davon geht, passiert nichts. */
-export function haptic() {
-  if (typeof navigator.vibrate === 'function') { navigator.vibrate(10); return; }
-  if (!iosTick) {
-    iosTick = document.createElement('label');
-    iosTick.setAttribute('aria-hidden', 'true');
-    iosTick.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
-    const input = document.createElement('input');
-    input.type = 'checkbox'; input.setAttribute('switch', ''); input.tabIndex = -1;
-    iosTick.append(input);
-    document.body.append(iosTick);
-  }
-  iosTick.click();
+/** Klick auf eine Taste. Jede Taste ist ein <label> mit verstecktem <input switch>: iOS (ab 18) hat keine
+ *  Vibration-API, gibt aber einen Haptik-Tick, wenn der Finger einen Schalter umlegt – nicht, wenn Code ihn umlegt.
+ *  Android vibriert über navigator.vibrate. Liefert false für den Klick, den das Label an den Schalter weiterreicht. */
+export function keyClick(e: React.MouseEvent, vibrate: boolean): boolean {
+  if (e.target instanceof HTMLInputElement) return false;
+  if (!vibrate) e.preventDefault();  // Schalter bleibt, wie er ist → kein Tick
+  else if (typeof navigator.vibrate === 'function') navigator.vibrate(10);
+  return true;
 }

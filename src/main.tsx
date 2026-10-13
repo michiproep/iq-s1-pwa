@@ -8,7 +8,7 @@ import {initialState, MENU_PAGE, press, tableRows, type State} from './calc';
 import {asFraction, engParts, exactForm, factorize, formatParts, fractionText, recurring, toBase, toDMS} from './engine';
 import {ExactView, Formula, Recurring} from './natural';
 import {KEYS, type KeySpec, type Label} from './keys';
-import {haptic, pressHandlers} from './feedback';
+import {keyClick, pressHandlers} from './feedback';
 
 const REF_W = 478, REF_H = 929;
 
@@ -120,40 +120,60 @@ function LabelView({l}: {l: Label}) {
   return <span className={`lbl c-${l.c}`} style={style}>{l.t}</span>;
 }
 
-function Key({k, onPress}: {k: KeySpec; onPress: (id: string) => void}) {
+/** Versteckter Schalter in jeder Taste: Tippen legt ihn um, das gibt am iPhone den Haptik-Tick (siehe feedback.ts). */
+const Tick = () => <input type="checkbox" {...{switch: ''} /* fehlt in @types/react */} hidden tabIndex={-1} aria-hidden="true"/>;
+
+function Key({k, vibrate, onPress}: {k: KeySpec; vibrate: boolean; onPress: (id: string) => void}) {
   return <>
     {k.labels?.map((l, i) => <LabelView key={i} l={l}/>)}
-    <button type="button" aria-label={k.aria} className={`key ${k.kind} f-${k.font ?? 'sans'}`}
+    <label role="button" aria-label={k.aria} className={`key ${k.kind} f-${k.font ?? 'sans'}`}
       style={{left: k.x, top: k.y, width: k.w, height: k.h, fontSize: k.fs}}
-      {...pressHandlers} onMouseDown={e => e.preventDefault() /* kein Fokus per Maus */} onClick={() => onPress(k.id)}>
-      <span className="face">{k.face}</span>
-    </button>
+      {...pressHandlers} onMouseDown={e => e.preventDefault() /* keine Textauswahl per Maus */} onClick={e => keyClick(e, vibrate) && onPress(k.id)}>
+      <Tick/><span className="face">{k.face}</span>
+    </label>
   </>;
 }
 
-/** Steuerkreuz (REPLAY) aus vier Trapezen. Koordinaten relativ zu (182, 317). */
-function DPad({onPress}: {onPress: (id: string) => void}) {
-  const pads: [string, string, string][] = [
-    ['up', '14,1 103,1 85,33 32,33', 'Nach oben'], ['down', '32,100 85,100 103,132 14,132', 'Nach unten'],
-    ['left', '1,17 32,50 32,82 1,115', 'Nach links'], ['right', '116,17 85,50 85,82 116,115', 'Nach rechts'],
-  ];
-  return <svg className="dpad" viewBox="0 0 117 133" width={117} height={133} style={{left: 182, top: 317}}>
-    <defs>
-      <linearGradient id="gV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#4a4645"/><stop offset=".25" stopColor="#433f3f"/><stop offset="1" stopColor="#423e3e"/></linearGradient>
-      <linearGradient id="gL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#4a4645"/><stop offset=".25" stopColor="#45413f"/><stop offset="1" stopColor="#433f3e"/></linearGradient>
-      <linearGradient id="gR" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stopColor="#4a4645"/><stop offset=".25" stopColor="#474342"/><stop offset="1" stopColor="#433f3e"/></linearGradient>
-    </defs>
-    {pads.map(([id, pts, aria]) => <polygon key={id} points={pts} role="button" aria-label={aria} className="pad"
-      fill={`url(#${id === 'left' ? 'gL' : id === 'right' ? 'gR' : 'gV'})`} stroke={id === 'left' ? '#46423f' : id === 'right' ? '#464241' : '#443f3f'}
-      strokeWidth={5} strokeLinejoin="round" {...pressHandlers} onClick={() => onPress(id)}/>)}
-    <g className="dpadText" pointerEvents="none">
-      <polygon points="58.5,19 63.5,25 53.5,25" fill="#fff"/>
-      <polygon points="53.5,109 63.5,109 58.5,115" fill="#fff"/>
-      <polygon points="17,66 25,61.5 25,70.5" fill="#fff"/>
-      <polygon points="101,66 93,61.5 93,70.5" fill="#fff"/>
-      <text x="58.5" y="70.3" textAnchor="middle">REPLAY</text>
-    </g>
-  </svg>;
+/** Steuerkreuz (REPLAY) aus vier Trapezen. Koordinaten relativ zu (182, 317). Das SVG zeichnet nur;
+ *  bedient wird über zugeschnittene Labels darüber, damit auch hier der iPhone-Tick funktioniert. */
+const DPAD_X = 182, DPAD_Y = 317;
+const PADS: [string, string, string][] = [
+  ['up', '14,1 103,1 85,33 32,33', 'Nach oben'], ['down', '32,100 85,100 103,132 14,132', 'Nach unten'],
+  ['left', '1,17 32,50 32,82 1,115', 'Nach links'], ['right', '116,17 85,50 85,82 116,115', 'Nach rechts'],
+];
+
+function PadHit({id, pts, aria, vibrate, onPress}: {id: string; pts: string; aria: string; vibrate: boolean; onPress: (id: string) => void}) {
+  const xy = pts.split(' ').map(p => p.split(',').map(Number));
+  const x0 = Math.min(...xy.map(p => p[0])), y0 = Math.min(...xy.map(p => p[1]));
+  const w = Math.max(...xy.map(p => p[0])) - x0, h = Math.max(...xy.map(p => p[1])) - y0;
+  return <label role="button" aria-label={aria} className="padHit"
+    style={{left: DPAD_X + x0, top: DPAD_Y + y0, width: w, height: h, clipPath: `polygon(${xy.map(([x, y]) => `${x - x0}px ${y - y0}px`).join(',')})`}}
+    {...pressHandlers} onMouseDown={e => e.preventDefault()} onClick={e => keyClick(e, vibrate) && onPress(id)}>
+    <Tick/>
+  </label>;
+}
+
+function DPad({vibrate, onPress}: {vibrate: boolean; onPress: (id: string) => void}) {
+  return <>
+    <svg className="dpad" viewBox="0 0 117 133" width={117} height={133} style={{left: DPAD_X, top: DPAD_Y}} aria-hidden="true">
+      <defs>
+        <linearGradient id="gV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#4a4645"/><stop offset=".25" stopColor="#433f3f"/><stop offset="1" stopColor="#423e3e"/></linearGradient>
+        <linearGradient id="gL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#4a4645"/><stop offset=".25" stopColor="#45413f"/><stop offset="1" stopColor="#433f3e"/></linearGradient>
+        <linearGradient id="gR" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stopColor="#4a4645"/><stop offset=".25" stopColor="#474342"/><stop offset="1" stopColor="#433f3e"/></linearGradient>
+      </defs>
+      {PADS.map(([id, pts]) => <polygon key={id} points={pts}
+        fill={`url(#${id === 'left' ? 'gL' : id === 'right' ? 'gR' : 'gV'})`} stroke={id === 'left' ? '#46423f' : id === 'right' ? '#464241' : '#443f3f'}
+        strokeWidth={5} strokeLinejoin="round"/>)}
+      <g className="dpadText" pointerEvents="none">
+        <polygon points="58.5,19 63.5,25 53.5,25" fill="#fff"/>
+        <polygon points="53.5,109 63.5,109 58.5,115" fill="#fff"/>
+        <polygon points="17,66 25,61.5 25,70.5" fill="#fff"/>
+        <polygon points="101,66 93,61.5 93,70.5" fill="#fff"/>
+        <text x="58.5" y="70.3" textAnchor="middle">REPLAY</text>
+      </g>
+    </svg>
+    {PADS.map(([id, pts, aria]) => <PadHit key={id} id={id} pts={pts} aria={aria} vibrate={vibrate} onPress={onPress}/>)}
+  </>;
 }
 
 const KEYBOARD: Record<string, string[]> = {
@@ -166,10 +186,7 @@ const KEYBOARD: Record<string, string[]> = {
 function App() {
   const [s, setS] = useState<State>(initialState);
   const [scale, setScale] = useState(1);
-  const onPress = (id: string) => {
-    if (s.vibrate) haptic();
-    setS(st => press(st, id));
-  };
+  const onPress = (id: string) => setS(st => press(st, id));
 
   useEffect(() => {
     const fit = () => setScale(Math.min(window.innerWidth / REF_W, window.innerHeight / REF_H));
@@ -184,8 +201,6 @@ function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
-      // Enter/Leertaste auf einer fokussierten Taste löst deren eigenen Klick aus
-      if (e.target instanceof HTMLButtonElement && (e.key === 'Enter' || e.key === ' ')) return;
       const seq = /^[0-9]$/.test(e.key) ? ['k' + e.key] : KEYBOARD[e.key];
       if (!seq) return;
       e.preventDefault();
@@ -203,8 +218,8 @@ function App() {
       <div className="solar"><span/><span/><span/><span/></div>
       <div className="bezel"/>
       <div className="window" aria-live="polite"><Screen s={s}/></div>
-      <DPad onPress={onPress}/>
-      {KEYS.map(k => <Key key={k.id} k={k} onPress={onPress}/>)}
+      <DPad vibrate={s.vibrate} onPress={onPress}/>
+      {KEYS.map(k => <Key key={k.id} k={k} vibrate={s.vibrate} onPress={onPress}/>)}
     </div>
   </main>;
 }

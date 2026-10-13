@@ -149,7 +149,7 @@ main { position: relative; flex: none; }
 .key.pillL { border-radius: 19px 7px 7px 19px / 18px 9px 9px 18px; box-shadow: inset 2px 1px 0 #5d5a59, 0 0 0 1px #2f2a28, 0 2px 0 1px #2c2725; }
 .key.pillR { border-radius: 7px 19px 19px 7px / 9px 18px 18px 9px; box-shadow: inset -1px 1px 0 #555150, 0 0 0 1px #2f2a28, 0 2px 0 1px #2c2725; }
 /* .down setzt feedback.ts per Pointer-Events (iOS zeigt :active bei Touch kaum) */
-.key:active, .key.down, .pad:active, .pad.down { filter: brightness(.82); }
+.key:active, .key.down { filter: brightness(.82); }
 .key:active, .key.down { transform: translateY(1px); }
 .key:focus-visible { box-shadow: 0 0 0 2px #fff; }
 .f-sans { font-family: Roboto, Arial, Helvetica, sans-serif; }
@@ -163,5 +163,6 @@ main { position: relative; flex: none; }
 
 /* Steuerkreuz */
 .dpad { position: absolute; overflow: visible; }
-.pad { cursor: pointer; }
+.padHit { position: absolute; cursor: pointer; touch-action: manipulation; }
+.padHit:active, .padHit.down { background: rgba(0, 0, 0, .18); }  /* wirkt wie brightness(.82) auf dem Trapez */
 .dpadText text { fill: #ececec; font: 700 10.5px Roboto, Arial, sans-serif; letter-spacing: 1.1px; }
