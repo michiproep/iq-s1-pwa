@@ -72,10 +72,37 @@ SHIFT und ALPHA gelten nur für den **nächsten** Tastendruck. Ein zweiter Druck
 
 Beispiel: `2` `+` `3` `×` `4` `=` → **14**
 
+### Lehrbuch-Eingabe (Vorlagen)
+
+Wie am Gerät erscheinen Brüche, Wurzeln, Potenzen, log und Betrag als **Formel mit Eingabefeldern**. Leere Felder werden als gepunktetes Kästchen angezeigt.
+
+| Vorlage | Taste | Darstellung |
+|---|---|---|
+| Bruch | `▭/▭` | Zähler über Nenner |
+| gemischter Bruch | SHIFT `▭/▭` | Ganzes, Zähler, Nenner |
+| Quadrat-/Kubikwurzel | `√■` / SHIFT `√■` | Wurzelzeichen mit Überstrich |
+| n-te Wurzel | SHIFT `x■` | Index, Radikand |
+| Potenz | `x■`, `x²`, `x³`, `x⁻¹` | hochgestellter Exponent |
+| 10ˣ, eˣ | SHIFT `log`, SHIFT `ln` | 10 bzw. e mit hochgestelltem Exponenten |
+| Logarithmus zur Basis a | `log■□` | log mit tiefgestellter Basis |
+| Betrag | `Abs` | Betragsstriche \|x\| |
+
+- **Zwischen den Feldern wechseln:** ◀ ▶. Mit ▶ am Ende eines Feldes geht es ins nächste Feld bzw. hinter die Vorlage.
+- **Zahl vor ▭/▭:** Steht direkt vor dem Cursor eine Zahl oder ein Ausdruck wie `4√2`, wird er automatisch zum Zähler, und der Cursor springt in den Nenner. Direkt nach einem Ergebnis wird `Ans` zum Zähler.
+- **Vorlage entfernen:** `DEL` am Anfang eines Feldes löst die Vorlage auf. Der eingegebene Inhalt bleibt erhalten.
+- **Schließende Klammern** am Ende dürfen fehlen, etwa bei `sin(30`. Sie werden beim Rechnen ergänzt.
+
+Beispiel (wie im Gerätedisplay):
+`4` `√■` `2` ▶ `▭/▭` `3` ▶ `+` `1` `▭/▭` `6` `√■` `2` `=` → Eingabe 4√2⁄3 + 1⁄(6√2), Ergebnis **17√2⁄12**
+
 ## 5. Ergebnisdarstellung
 
-- Ergebnisse, die sich als Bruch darstellen lassen, erscheinen als **Bruch** (z. B. 1÷3 → ⅓).
-- **S⇔D** wechselt zwischen Bruch und Dezimalzahl.
+- Ergebnisse erscheinen nach Möglichkeit **exakt** in Lehrbuchform:
+  - als **Bruch**, z. B. 1÷3 → ⅓
+  - als **Wurzelterm**, z. B. √8 → 2√2, sin 45° → √2⁄2, 4√2⁄3 + 1⁄(6√2) → 17√2⁄12
+  - als **π-Vielfaches**, z. B. 3π÷4 → 3π⁄4
+- Gibt es keine exakte Form, erscheint die Dezimalzahl.
+- **S⇔D** wechselt zwischen exakter Form und Dezimalzahl.
 - **SHIFT =** (≈) berechnet und zeigt direkt die Dezimalzahl.
 - **SHIFT S⇔D** wechselt zwischen gemischtem Bruch (2 ⅓) und unechtem Bruch (7/3).
 - **ENG** zeigt das Ergebnis in technischer Notation (Exponent durch 3 teilbar). Jeder weitere Druck verkleinert den Exponenten um 3. **SHIFT ENG** (←) vergrößert ihn.
@@ -91,17 +118,17 @@ Beispiel: `2` `+` `3` `×` `4` `=` → **14**
 |---|---|---|
 | Quadrat, Kubik | `x²`, `x³` | `3` `x²` `=` → 9 |
 | Kehrwert | `x⁻¹` | `4` `x⁻¹` `=` → ¼ |
-| beliebige Potenz | `x■` | `2` `x■` `10` `)` `=` → 1024 |
-| Quadratwurzel / Kubikwurzel | `√■` / SHIFT `√■` | `√■` `16` `)` `=` → 4 |
-| n-te Wurzel | SHIFT `x■` | ⁿ√(3;−8) → −2 |
+| beliebige Potenz | `x■` | `2` `x■` `10` `=` → 1024 |
+| Quadratwurzel / Kubikwurzel | `√■` / SHIFT `√■` | `√■` `16` `=` → 4 |
+| n-te Wurzel | SHIFT `x■` | SHIFT `x■` `3` ▶ `(−)` `8` `=` → −2 |
 | Zehnerpotenz eingeben | `x10ˣ` | `5` `x10ˣ` `3` → 5000 |
 | Prozent | SHIFT `(` | `200` `×` `15` `%` `=` → 30 |
 | Fakultät | SHIFT `x⁻¹` (x!) | `5` `x!` `=` → 120 |
 | Vorzeichen | `(−)` | `(−)` `3` |
-| Betrag | `Abs` | Abs(−7) → 7 |
+| Betrag | `Abs` | `Abs` `(−)` `7` `=` → 7 |
 | Division mit Rest | SHIFT `Abs` (÷R) | `17` `÷R` `5` `=` → Q=3, R=2 |
-| Bruch eingeben | `▭/▭` | `1` `▭/▭` `3` = ⅓ |
-| gemischter Bruch | `▭/▭` zweimal | `2` `▭/▭` `1` `▭/▭` `2` = 2½ |
+| Bruch eingeben | `▭/▭` | `1` `▭/▭` `3` `=` → ⅓ |
+| gemischter Bruch | SHIFT `▭/▭` | SHIFT `▭/▭` `2` ▶ `1` ▶ `2` `=` → 2½ |
 
 ### Logarithmen und Exponentialfunktion
 
@@ -109,7 +136,7 @@ Beispiel: `2` `+` `3` `×` `4` `=` → **14**
 |---|---|
 | log₁₀ / 10ˣ | `log` / SHIFT `log` |
 | ln / eˣ | `ln` / SHIFT `ln` |
-| Logarithmus zur Basis a | `log■□` → log(a;b), z. B. log(2;8) = 3 |
+| Logarithmus zur Basis a | `log■□` `2` ▶ `8` `=` → 3 (log₂8) |
 
 ### Trigonometrie
 
@@ -248,7 +275,7 @@ Beispiel Umrechnung: `2,54` SHIFT `8` `1` → **1** (inch).
 
 ## 13. Grenzen der Nachbildung
 
-- Einzeilige Eingabe statt vollständiger Lehrbuch-Darstellung. Brüche werden im Ergebnis gestapelt angezeigt.
+- Die Lehrbuch-Darstellung nutzt eine normale Schrift, nicht die Pixelschrift des LCD. Exakte Ergebnisse gibt es für Brüche, einfache Wurzelterme (a√b⁄c) und π-Vielfache, aber nicht für Summen wie 1+√2.
 - VERIFY (SHIFT 6), Verteilungen und Regression sind nicht nachgebildet.
 - Es gibt 9 Konstanten und 9 Umrechnungen statt des vollen Umfangs des Originals.
 - Die Ergebnisse sind nicht gegen das Originalgerät geprüft.

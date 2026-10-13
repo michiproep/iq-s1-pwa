@@ -29,6 +29,44 @@ export const TOKENS: Record<string, TokenDef> = {
   'x̄': fn('x̄', '(_st_mean)'), 'σx': fn('σx', '(_st_sd)'), 'sx': fn('sx', '(_st_s)'), 'n': fn('n', '(_st_n)'),
   'Σx': fn('Σx', '(_st_sum)'), 'Σx²': fn('Σx²', '(_st_sum2)'), 'minX': fn('minX', '(_st_min)'), 'maxX': fn('maxX', '(_st_max)'),
 };
+/**
+ * Strukturelemente der Lehrbuch-Darstellung. Jede Vorlage besteht aus einem Öffnungs-Token,
+ * optionalen Trennern zwischen den Eingabefeldern und einem Schluss-Token.
+ */
+export const STRUCT: Record<string, {code: string; seps?: string[]}> = {
+  'F(': {code: '((', seps: ['F|']},            // Bruch: Zähler | Nenner
+  'M(': {code: '((', seps: ['M|1', 'M|2']},    // gemischter Bruch: Ganzes | Zähler | Nenner
+  'R(': {code: 'sqrt('}, 'R3(': {code: 'cbrt('}, // Quadrat- und Kubikwurzel
+  'N(': {code: '_xrt((', seps: ['N|']},        // n-te Wurzel: Index | Radikand
+  'P(': {code: '^('},                          // Exponent
+  'L(': {code: '_logab((', seps: ['L|']},      // log_a(b)
+  'A(': {code: 'abs('},                        // Betrag
+};
+export const STRUCT_SEP: Record<string, string> = {'F|': ')/(', 'M|1': ')+((', 'M|2': ')/(', 'N|': '),(', 'L|': '),('};
+export const STRUCT_CLOSE: Record<string, string> = {'F)': '))', 'M)': ')))', 'R)': ')', 'N)': '))', 'P)': ')', 'L)': '))', 'A)': ')'};
+export const isOpen = (t: string) => t in STRUCT;
+export const isSep = (t: string) => t in STRUCT_SEP;
+export const isClose = (t: string) => t in STRUCT_CLOSE;
+export const isStruct = (t: string) => isOpen(t) || isSep(t) || isClose(t);
+
+/** Indizes aller Marker (Öffnung, Trenner, Schluss) der Vorlage, zu der der Marker an Position i gehört. */
+export function structGroup(tokens: string[], i: number): number[] {
+  let start = i;
+  if (!isOpen(tokens[i])) {
+    for (let depth = 0, j = i - 1; j >= 0; j--) {
+      if (isClose(tokens[j])) depth++;
+      else if (isOpen(tokens[j])) { if (depth === 0) { start = j; break; } depth--; }
+    }
+  }
+  const idx = [start];
+  for (let depth = 0, j = start + 1; j < tokens.length; j++) {
+    if (isOpen(tokens[j])) depth++;
+    else if (isClose(tokens[j])) { if (depth === 0) { idx.push(j); break; } depth--; }
+    else if (isSep(tokens[j]) && depth === 0) idx.push(j);
+  }
+  return idx;
+}
+
 export const VARS = ['A', 'B', 'C', 'D', 'E', 'F', 'X', 'Y', 'M'] as const;
 for (const v of VARS) TOKENS['var' + v] = fn(v, `(${v}_v)`);
 for (const h of 'ABCDEF') TOKENS['hex' + h] = fn(h, h);
@@ -72,8 +110,11 @@ export function translate(tokens: string[], base: Base = 10): string {
       continue;
     }
     if (t.startsWith('hex')) throw Error('Syntax ERROR');
-    out += TOKENS[t]?.code ?? t;
+    out += STRUCT[t]?.code ?? STRUCT_SEP[t] ?? STRUCT_CLOSE[t] ?? TOKENS[t]?.code ?? t;
   }
+  // Fehlende schließende Klammern ergänzen (wie am Gerät erlaubt)
+  const open = (out.match(/\(/g) ?? []).length - (out.match(/\)/g) ?? []).length;
+  if (open > 0) out += ')'.repeat(open);
   // Zahl ᴇ Exponent
   out = out.replace(/(\d*\.?\d+)ᴇ(-?\d+)/g, '($1e$2)').replace(/ᴇ/g, '*10^');
   // Grad-Minuten-Sekunden
@@ -230,6 +271,41 @@ export function asFraction(v: number): {s: number; n: number; d: number} | null 
     return {s, n, d};
   } catch { return null; }
 }
+
+/** Exakte Darstellung: Bruch, Wurzelterm s·n√r/d oder π-Vielfaches s·nπ/d. */
+export type Exact = {kind: 'frac'; s: number; n: number; d: number} | {kind: 'surd'; s: number; n: number; r: number; d: number} | {kind: 'pi'; s: number; n: number; d: number};
+
+function ratApprox(v: number, maxDen: number, tol: number): {n: number; d: number} | null {
+  for (let d = 1; d <= maxDen; d++) {
+    const n = Math.round(v * d);
+    if (Math.abs(n / d - v) <= tol * Math.max(1, Math.abs(v))) return {n, d};
+  }
+  return null;
+}
+
+export function exactForm(v: number): Exact | null {
+  if (!Number.isFinite(v) || v === 0 || Math.abs(v) >= 1e6) return null;
+  const f = asFraction(v);
+  if (f) return {kind: 'frac', ...f};
+  if (Number.isInteger(v)) return null;
+  const s = Math.sign(v), a = Math.abs(v);
+  // Wurzelterm: a² ist ein Bruch p/q → a = √(p·q)/q = n√r/d
+  const sq = ratApprox(a * a, 999, 1e-11);
+  if (sq && sq.n * sq.d < 1e7) {
+    let r = sq.n * sq.d, k = 1;
+    for (let i = 2; i * i <= r; i++) while (r % (i * i) === 0) { r /= i * i; k *= i; }
+    if (r > 1 && r <= 9999) {
+      const g = gcdInt(k, sq.d);
+      const n = k / g, d = sq.d / g;
+      if (n <= 9999 && d <= 9999 && Math.abs(n * Math.sqrt(r) / d - a) <= 1e-10 * a) return {kind: 'surd', s, n, r, d};
+    }
+  }
+  // π-Vielfaches
+  const pi = ratApprox(a / Math.PI, 100, 1e-12);
+  if (pi && pi.n > 0 && pi.n <= 999) return {kind: 'pi', s, n: pi.n, d: pi.d};
+  return null;
+}
+const gcdInt = (a: number, b: number): number => b ? gcdInt(b, a % b) : a;
 
 export function fractionText(v: number, mixed: boolean): string | null {
   const f = asFraction(v);

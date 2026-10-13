@@ -1,10 +1,12 @@
 import {
   CONSTANTS, CONVERSIONS, evaluateTokens, factorize, type Angle, type Base, type NumFormat, type Result, engStart, VARS,
+  isClose, isStruct, structGroup,
 } from './engine';
 
 export type Mode = 'COMP' | 'STAT' | 'TABLE' | 'BASE';
 export type View = 'auto' | 'dec' | 'frac' | 'mixed' | 'eng' | 'dms' | 'fact';
-type Action = {ins: string} | {cmd: string};
+/** ins: einzelnes Token · tpl: Vorlage mit Cursorposition `at` (cont: nach Ergebnis mit Ans fortsetzen) · cmd: Befehl */
+type Action = {ins: string} | {tpl: string[]; at: number; cont?: boolean} | {cmd: string};
 export interface MenuItem {label: string; act: (s: State) => State}
 export interface Menu {title?: string; items: MenuItem[]; top: number; digitPrompt?: (s: State, d: number) => State | null}
 interface HistoryEntry {tokens: string[]; result: Result}
@@ -33,11 +35,11 @@ export const initialState = (): State => ({
 export const KEYMAP: Record<string, {p: Action; s?: Action; a?: Action; v?: string; b?: Action}> = {
   shift: {p: {cmd: 'SHIFT'}}, alpha: {p: {cmd: 'ALPHA'}}, mode: {p: {cmd: 'MODE'}, s: {cmd: 'SETUP'}}, on: {p: {cmd: 'ON'}},
   up: {p: {cmd: 'UP'}}, down: {p: {cmd: 'DOWN'}}, left: {p: {cmd: 'LEFT'}}, right: {p: {cmd: 'RIGHT'}},
-  abs: {p: {ins: 'Abs('}, s: {ins: '÷R'}}, cube: {p: {ins: '³'}, a: {ins: ':'}},
-  inv: {p: {ins: '⁻¹'}, s: {ins: '!'}}, logab: {p: {ins: 'logab('}},
-  frac: {p: {ins: 'frac'}, s: {ins: 'frac'}}, sqrt: {p: {ins: '√('}, s: {ins: '³√('}},
-  sq: {p: {ins: '²'}, b: {cmd: 'DEC'}}, pow: {p: {ins: '^('}, s: {ins: 'ˣ√('}, b: {cmd: 'HEX'}},
-  log: {p: {ins: 'log('}, s: {ins: '10^('}, b: {cmd: 'BIN'}}, ln: {p: {ins: 'ln('}, s: {ins: 'e^('}, b: {cmd: 'OCT'}},
+  abs: {p: {tpl: ['A(', 'A)'], at: 1}, s: {ins: '÷R'}}, cube: {p: {tpl: ['P(', '3', 'P)'], at: 3, cont: true}, a: {ins: ':'}},
+  inv: {p: {tpl: ['P(', 'neg', '1', 'P)'], at: 4, cont: true}, s: {ins: '!'}}, logab: {p: {tpl: ['L(', 'L|', 'L)'], at: 1}},
+  frac: {p: {cmd: 'FRAC'}, s: {tpl: ['M(', 'M|1', 'M|2', 'M)'], at: 1}}, sqrt: {p: {tpl: ['R(', 'R)'], at: 1}, s: {tpl: ['R3(', 'R)'], at: 1}},
+  sq: {p: {tpl: ['P(', '2', 'P)'], at: 3, cont: true}, b: {cmd: 'DEC'}}, pow: {p: {tpl: ['P(', 'P)'], at: 1, cont: true}, s: {tpl: ['N(', 'N|', 'N)'], at: 1}, b: {cmd: 'HEX'}},
+  log: {p: {ins: 'log('}, s: {tpl: ['1', '0', 'P(', 'P)'], at: 3}, b: {cmd: 'BIN'}}, ln: {p: {ins: 'ln('}, s: {tpl: ['ℯ', 'P(', 'P)'], at: 2}, b: {cmd: 'OCT'}},
   neg: {p: {ins: 'neg'}, a: {ins: 'varA'}, v: 'A', b: {ins: 'hexA'}},
   dms: {p: {ins: '°'}, s: {cmd: 'FACT'}, a: {ins: 'varB'}, v: 'B', b: {ins: 'hexB'}},
   hyp: {p: {cmd: 'HYP'}, a: {ins: 'varC'}, v: 'C', b: {ins: 'hexC'}},
@@ -73,17 +75,38 @@ function digitPrompt(title: string, f: (s: State, d: number) => State | null): M
   return {title, items: [], top: 0, digitPrompt: f};
 }
 
-function insert(s: State, tok: string): State {
+const insert = (s: State, tok: string): State => insertSeq(s, [tok], 1, CONTINUES.has(tok));
+
+/** Fügt eine Tokenfolge am Cursor ein; der Cursor steht danach an Position `at` innerhalb der Folge. */
+function insertSeq(s: State, seq: string[], at: number, cont: boolean): State {
   if (s.shown || s.error) {
     const fresh = {...s, shown: false, error: null, view: 'auto' as View, result: null};
-    const toks = CONTINUES.has(tok) ? ['Ans', tok] : [tok];
-    return {...fresh, tokens: toks, cursor: toks.length};
+    const toks = cont ? ['Ans', ...seq] : seq;
+    return {...fresh, tokens: toks, cursor: at + (cont ? 1 : 0)};
   }
-  if (s.prefill) return {...s, prefill: false, tokens: [tok], cursor: 1};
-  if (s.tokens.length >= 99) return s;
+  if (s.prefill) return {...s, prefill: false, tokens: seq, cursor: at};
+  if (s.tokens.length + seq.length > 99) return s;
   const tokens = [...s.tokens];
-  if (!s.insert && s.cursor < tokens.length) tokens[s.cursor] = tok; else tokens.splice(s.cursor, 0, tok);
-  return {...s, tokens, cursor: s.cursor + 1};
+  const overwrite = !s.insert && seq.length === 1 && s.cursor < tokens.length && !isStruct(tokens[s.cursor]);
+  tokens.splice(s.cursor, overwrite ? 1 : 0, ...seq);
+  return {...s, tokens, cursor: s.cursor + at};
+}
+
+/** Bruchvorlage. Eine unmittelbar vor dem Cursor stehende Zahl wird zum Zähler. */
+function fracTemplate(s: State): State {
+  if (s.shown || s.error) return insertSeq(s, ['F(', 'Ans', 'F|', 'F)'], 3, false);
+  const simple = (t: string) => /^\d$/.test(t) || t === ',' || t === 'Ans' || t === 'π' || t === 'ℯ' || /^(var|K)/.test(t);
+  let j = s.cursor;
+  while (!s.prefill && j > 0) {
+    const t = s.tokens[j - 1];
+    if (simple(t)) j--;
+    else if (isClose(t)) j = structGroup(s.tokens, j - 1)[0];  // ganze Vorlage (z. B. √2, x²) übernehmen
+    else break;
+  }
+  if (j === s.cursor) return insertSeq(s, ['F(', 'F|', 'F)'], 1, false);
+  const run = s.tokens.slice(j, s.cursor);
+  const tokens = [...s.tokens.slice(0, j), 'F(', ...run, 'F|', 'F)', ...s.tokens.slice(s.cursor)];
+  return {...s, tokens, cursor: j + run.length + 2};
 }
 
 function evaluate(s: State): State {
@@ -200,10 +223,16 @@ function command(s: State, cmd: string): State {
       return {...s, tokens: [], cursor: 0, shown: false, result: null, error: null, menu: null, info: null, pending: null, hyp: false};
     case 'DEL':
       if (s.shown) return {...s, shown: false, cursor: s.tokens.length};
-      if (!s.insert && s.cursor < s.tokens.length) return {...s, tokens: s.tokens.filter((_, i) => i !== s.cursor)};
+      if (!s.insert && s.cursor < s.tokens.length && !isStruct(s.tokens[s.cursor])) return {...s, tokens: s.tokens.filter((_, i) => i !== s.cursor)};
       if (s.cursor === 0) return s;
+      if (isStruct(s.tokens[s.cursor - 1])) {
+        // Vorlage auflösen, Inhalt der Eingabefelder bleibt erhalten
+        const k = s.cursor - 1, group = structGroup(s.tokens, k);
+        return {...s, tokens: s.tokens.filter((_, i) => !group.includes(i)), cursor: k - group.filter(i => i < k).length};
+      }
       return {...s, tokens: s.tokens.filter((_, i) => i !== s.cursor - 1), cursor: s.cursor - 1};
     case 'INS': return {...s, insert: !s.insert};
+    case 'FRAC': return fracTemplate(s);
     case 'LEFT':
       if (s.mode === 'TABLE' && s.table.phase === 'list') return s;
       if (s.shown) return {...s, shown: false, cursor: s.tokens.length};
@@ -309,7 +338,9 @@ export function press(state: State, key: string): State {
   else act = def.p;
   if (key !== 'shift' && key !== 'alpha') s = clearFlags(s);
   if (!act) return s;
-  if (s.mode === 'BASE' && 'ins' in act && [',', 'E', '°', '√(', '²', '³', 'frac'].includes(act.ins)) return s;
+  if (s.mode === 'BASE' && (('ins' in act && [',', 'E', '°'].includes(act.ins)) || 'tpl' in act || ('cmd' in act && act.cmd === 'FRAC'))) return s;
   if (s.shown && s.result?.kind === 'num' && 'ins' in act && act.ins === '°') return {...s, view: s.view === 'dms' ? 'auto' : 'dms'};
-  return 'ins' in act ? insert(s, act.ins) : command(act.cmd === '=' ? s : {...s, prefill: false}, act.cmd);
+  if ('ins' in act) return insert(s, act.ins);
+  if ('tpl' in act) return insertSeq(s, act.tpl, act.at, !!act.cont);
+  return command(act.cmd === '=' || act.cmd === 'FRAC' ? s : {...s, prefill: false}, act.cmd);
 }

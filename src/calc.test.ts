@@ -81,3 +81,30 @@ describe('Modi', () => {
     expect(s.base).toBe(16); expect(value(s)).toBe(256);
   });
 });
+
+describe('Lehrbuch-Eingabe (Vorlagen)', () => {
+  it('Zahl vor ▭/▭ wird Zähler, Cursor im Nenner', () => {
+    const s = run('k1 frac');
+    expect(s.tokens).toEqual(['F(', '1', 'F|', 'F)']); expect(s.cursor).toBe(3);
+  });
+  it('1/3 + 1/6 = 1/2', () => expect(value(run('k1 frac k3 right add k1 frac k6 eq'))).toBeCloseTo(0.5));
+  it('Bruch mit ◀▶ navigieren', () => {
+    const s = run('frac k3 right k4 eq');
+    expect(value(s)).toBe(0.75);
+  });
+  it('Wurzel ohne schließende Klammer', () => expect(value(run('sqrt k1 k6 eq'))).toBe(4));
+  it('Wurzel im Bruch: 4√2/3', () => expect(value(run('k4 sqrt k2 right frac k3 eq'))).toBeCloseTo(4 * Math.SQRT2 / 3));
+  it('Potenz-Vorlage', () => expect(value(run('k2 pow k1 k0 right add k1 eq'))).toBe(1025));
+  it('x² als Exponent', () => expect(run('k3 sq').tokens).toEqual(['3', 'P(', '2', 'P)']));
+  it('n-te Wurzel', () => expect(value(run('shift pow k3 right k2 k7 eq'))).toBeCloseTo(3));
+  it('log_a(b)', () => expect(value(run('logab k2 right k8 eq'))).toBeCloseTo(3));
+  it('Betrag', () => expect(value(run('abs neg k5 eq'))).toBe(5));
+  it('gemischter Bruch', () => expect(value(run('shift frac k2 right k1 right k2 eq'))).toBe(2.5));
+  it('10^x und e^x', () => { expect(value(run('shift log k3 eq'))).toBeCloseTo(1000); expect(value(run('shift ln k0 eq'))).toBe(1); });
+  it('DEL löst Vorlage auf, Inhalt bleibt', () => {
+    const s = run('k1 frac k2 left del');
+    expect(s.tokens).toEqual(['1', '2']);
+  });
+  it('Ergebnis als Zähler', () => expect(run('k5 eq frac').tokens).toEqual(['F(', 'Ans', 'F|', 'F)']));
+  it('x² nach Ergebnis mit Ans', () => expect(value(run('k3 eq sq eq'))).toBe(9));
+});

@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {evaluateTokens, factorize, formatParts, fractionText, toBase, toDMS, type Ctx} from './engine';
+import {evaluateTokens, exactForm, factorize, formatParts, fractionText, toBase, toDMS, type Ctx} from './engine';
 
 const ctx = (o: Partial<Ctx> = {}): Ctx => ({angle: 'DEG', ans: 0, vars: {}, ...o});
 /** Kurzschreibweise: ein Zeichen = ein Token, Mehrzeichen-Tokens in {} */
@@ -102,4 +102,17 @@ describe('Anzeige', () => {
   });
   it('Primfaktoren', () => expect(factorize(360)).toBe('2^3×3^2×5'));
   it('DMS', () => expect(toDMS(30.5)).toBe('30°30°0°'));
+});
+
+describe('Exakte Formen', () => {
+  it('Bruch', () => expect(exactForm(1 / 3)).toEqual({kind: 'frac', s: 1, n: 1, d: 3}));
+  it('Wurzelterm 17√2/12', () => expect(exactForm(17 * Math.SQRT2 / 12)).toEqual({kind: 'surd', s: 1, n: 17, r: 2, d: 12}));
+  it('√2/2 aus sin 45°', () => expect(exactForm(Math.sin(Math.PI / 4))).toEqual({kind: 'surd', s: 1, n: 1, r: 2, d: 2}));
+  it('negativer Wurzelterm', () => expect(exactForm(-2 * Math.sqrt(3))).toEqual({kind: 'surd', s: -1, n: 2, r: 3, d: 1}));
+  it('π-Vielfaches', () => expect(exactForm(3 * Math.PI / 4)).toEqual({kind: 'pi', s: 1, n: 3, d: 4}));
+  it('keine Form für ln 2', () => expect(exactForm(Math.LN2)).toBeNull());
+  it('keine Form für Ganzzahl', () => expect(exactForm(5)).toBeNull());
+  it('Strukturtoken werden übersetzt', () => {
+    expect(evaluateTokens(['F(', '1', 'F|', 'R(', '4', 'R)', 'F)'], {angle: 'DEG', ans: 0, vars: {}}).value).toBe(0.5);
+  });
 });

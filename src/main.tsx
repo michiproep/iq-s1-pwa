@@ -5,7 +5,8 @@ import '@fontsource/roboto/700.css';
 import '@fontsource/roboto-condensed/700.css';
 import './style.css';
 import {initialState, press, tableRows, type State} from './calc';
-import {engParts, factorize, formatParts, fractionText, toBase, toDMS, tokenDisplay} from './engine';
+import {engParts, exactForm, factorize, formatParts, toBase, toDMS} from './engine';
+import {ExactView, Formula} from './natural';
 import {KEYS, type KeySpec, type Label} from './keys';
 
 const REF_W = 478, REF_H = 929;
@@ -13,13 +14,6 @@ const REF_W = 478, REF_H = 929;
 function Num({v, s}: {v: number; s: State}) {
   const {mant, exp} = formatParts(v, s.fmt);
   return <>{mant}{exp !== null && <span className="e10">×10<sup>{exp}</sup></span>}</>;
-}
-
-function Frac({text}: {text: string}) {
-  const neg = text.startsWith('-');
-  const parts = text.replace('-', '').split('⌟');
-  const [w, n, d] = parts.length === 3 ? parts : [null, ...parts];
-  return <>{neg && '−'}{w}<span className="fr"><span>{n}</span><span>{d}</span></span></>;
 }
 
 function ResultView({s}: {s: State}): ReactNode {
@@ -36,8 +30,8 @@ function ResultView({s}: {s: State}): ReactNode {
     case 'eng': { const {mant, exp} = engParts(v, s.engExp); return <>{mant}<span className="e10">×10<sup>{exp}</sup></span></>; }
     case 'dec': return <Num v={v} s={s}/>;
     default: {
-      const f = s.mode === 'COMP' || s.mode === 'STAT' ? fractionText(v, s.view === 'mixed' || (s.view === 'auto' && s.mixedOut)) : null;
-      return f ? <Frac text={f}/> : <Num v={v} s={s}/>;
+      const e = s.mode === 'COMP' || s.mode === 'STAT' ? exactForm(v) : null;
+      return e ? <ExactView e={e} mixed={s.view === 'mixed' || (s.view === 'auto' && s.mixedOut)}/> : <Num v={v} s={s}/>;
     }
   }
 }
@@ -52,10 +46,9 @@ function InputLine({s, prompt}: {s: State; prompt?: string}) {
     if (l < box.scrollLeft) box.scrollLeft = Math.max(0, l - 30);
     else if (r > box.scrollLeft + box.clientWidth) box.scrollLeft = r - box.clientWidth + 2;
   });
-  const cursor = !s.shown && !s.error ? <span className={s.insert ? 'cursor' : 'cursor ovr'} key="cur"/> : null;
-  const parts: ReactNode[] = s.tokens.map((t, i) => <span key={i}>{tokenDisplay(t)}</span>);
-  if (cursor) parts.splice(s.cursor, 0, cursor);
-  return <div className="input" ref={ref}>{prompt && <span className="prompt">{prompt}</span>}{parts}</div>;
+  const showCursor = !s.shown && !s.error;
+  return <div className="input" ref={ref}>{prompt && <span className="prompt">{prompt}</span>}
+    <Formula tokens={s.tokens} cursor={showCursor ? s.cursor : -1} ovr={!s.insert}/></div>;
 }
 
 const ANGLE = {DEG: 'D', RAD: 'R', GRA: 'G'} as const;
@@ -111,8 +104,7 @@ function Key({k, onPress}: {k: KeySpec; onPress: (id: string) => void}) {
     {k.labels?.map((l, i) => <LabelView key={i} l={l}/>)}
     <button type="button" aria-label={k.aria} className={`key ${k.kind} f-${k.font ?? 'sans'}`}
       style={{left: k.x, top: k.y, width: k.w, height: k.h, fontSize: k.fs}}
-      onPointerDown={e => { e.preventDefault(); onPress(k.id); }}
-      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onPress(k.id); } }}>
+      onMouseDown={e => e.preventDefault() /* kein Fokus per Maus */} onClick={() => onPress(k.id)}>
       <span className="face">{k.face}</span>
     </button>
   </>;
@@ -132,7 +124,7 @@ function DPad({onPress}: {onPress: (id: string) => void}) {
     </defs>
     {pads.map(([id, pts, aria]) => <polygon key={id} points={pts} role="button" aria-label={aria} className="pad"
       fill={`url(#${id === 'left' ? 'gL' : id === 'right' ? 'gR' : 'gV'})`} stroke={id === 'left' ? '#46423f' : id === 'right' ? '#464241' : '#443f3f'}
-      strokeWidth={5} strokeLinejoin="round" onPointerDown={e => { e.preventDefault(); onPress(id); }}/>)}
+      strokeWidth={5} strokeLinejoin="round" onClick={() => onPress(id)}/>)}
     <g className="dpadText" pointerEvents="none">
       <polygon points="58.5,19 63.5,25 53.5,25" fill="#fff"/>
       <polygon points="53.5,109 63.5,109 58.5,115" fill="#fff"/>
@@ -163,6 +155,8 @@ function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
+      // Enter/Leertaste auf einer fokussierten Taste löst deren eigenen Klick aus
+      if (e.target instanceof HTMLButtonElement && (e.key === 'Enter' || e.key === ' ')) return;
       const seq = /^[0-9]$/.test(e.key) ? ['k' + e.key] : KEYBOARD[e.key];
       if (!seq) return;
       e.preventDefault();
