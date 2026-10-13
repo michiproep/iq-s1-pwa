@@ -1,6 +1,6 @@
 import {
   CONSTANTS, CONVERSIONS, evaluateTokens, factorize, type Angle, type Base, type NumFormat, type Result, engStart, VARS,
-  isClose, isStruct, structGroup,
+  isClose, isOpen, isSep, isStruct, structGroup,
 } from './engine';
 
 export type Mode = 'COMP' | 'STAT' | 'TABLE' | 'BASE';
@@ -90,6 +90,33 @@ function insertSeq(s: State, seq: string[], at: number, cont: boolean): State {
   const overwrite = !s.insert && seq.length === 1 && s.cursor < tokens.length && !isStruct(tokens[s.cursor]);
   tokens.splice(s.cursor, overwrite ? 1 : 0, ...seq);
   return {...s, tokens, cursor: s.cursor + at};
+}
+
+/**
+ * ▲/▼ innerhalb von Brüchen: wechselt zwischen Zähler und Nenner des innersten passenden Bruchs.
+ * Liefert die neue Cursorposition (Ende des Zielfelds), die alte Position, wenn der Cursor in einem Bruch
+ * steht, aber kein Wechsel möglich ist, oder null außerhalb von Brüchen (dann gilt REPLAY).
+ */
+export function fracVertical(tokens: string[], cursor: number, up: boolean): number | null {
+  const stack: {open: number; slot: number}[] = [];
+  for (let i = 0; i < cursor; i++) {
+    const t = tokens[i];
+    if (isOpen(t)) stack.push({open: i, slot: 0});
+    else if (isSep(t) && stack.length) stack[stack.length - 1].slot++;
+    else if (isClose(t)) stack.pop();
+  }
+  let inFraction = false;
+  for (let k = stack.length - 1; k >= 0; k--) {
+    const {open, slot} = stack[k], type = tokens[open];
+    if (type !== 'F(' && type !== 'M(') continue;
+    inFraction = true;
+    // Feldnummern: Bruch 0 = Zähler, 1 = Nenner; gemischter Bruch 1 = Zähler, 2 = Nenner
+    const num = type === 'F(' ? 0 : 1, den = num + 1;
+    const target = up ? (slot === den ? num : -1) : (slot === num ? den : -1);
+    if (target < 0) continue;
+    return structGroup(tokens, open)[target + 1];  // Position vor dem Trenner/Schluss-Token = Feldende
+  }
+  return inFraction ? cursor : null;
 }
 
 /** Bruchvorlage. Eine unmittelbar vor dem Cursor stehende Zahl wird zum Zähler. */
@@ -245,6 +272,10 @@ function command(s: State, cmd: string): State {
       if (s.mode === 'TABLE' && s.table.phase === 'list') {
         const n = tableRows(s).length;
         return {...s, table: {...s.table, pos: Math.max(0, Math.min(n - 1, s.table.pos + (cmd === 'UP' ? -1 : 1)))}};
+      }
+      if (!s.shown && !s.error) {
+        const moved = fracVertical(s.tokens, s.cursor, cmd === 'UP');
+        if (moved !== null) return moved === s.cursor ? s : {...s, cursor: moved};
       }
       if (!s.history.length) return s;
       const cur = s.shown ? s.histPos : s.history.length;

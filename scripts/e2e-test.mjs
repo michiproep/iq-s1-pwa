@@ -46,6 +46,8 @@ await check('Wurzel dezimal', ['Wurzel', '8', 'gleich', 'S D'], '2,828427125');
 await check('Bruch-Vorlage 1/3 + 1/6', ['1', 'Bruch', '3', 'Nach rechts', 'plus', '1', 'Bruch', '6', 'gleich'], '12');
 await check('Lehrbuch-Beispiel 4√2/3 + 1/(6√2)', ['4', 'Wurzel', '2', 'Nach rechts', 'Bruch', '3', 'Nach rechts', 'plus', '1', 'Bruch', '6', 'Wurzel', '2', 'gleich'], '17212');
 await has('… Eingabe als gestapelter Bruch mit Wurzel', '.input .nf .nr');
+await check('Bruch mit ▼ in den Nenner', ['Bruch', '3', 'Nach unten', '4', 'gleich'], '34');
+await check('Bruch mit ▲ zurück in den Zähler', ['1', 'Bruch', '4', 'Nach oben', '2', 'gleich'], '3');
 await check('sin 30', ['sin', '3', '0', 'gleich'], '12');
 await check('SHIFT sin', ['SHIFT', 'sin', '1', 'Klammer zu', 'gleich'], '90');
 await check('Großer Wert', ['9', 'mal zehn hoch', '1', '2', 'mal', '2', 'gleich'], '1,8×1013');

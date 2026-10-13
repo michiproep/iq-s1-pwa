@@ -108,3 +108,23 @@ describe('Lehrbuch-Eingabe (Vorlagen)', () => {
   it('Ergebnis als Zähler', () => expect(run('k5 eq frac').tokens).toEqual(['F(', 'Ans', 'F|', 'F)']));
   it('x² nach Ergebnis mit Ans', () => expect(value(run('k3 eq sq eq'))).toBe(9));
 });
+
+describe('▲▼ im Bruch', () => {
+  it('▼ vom Zähler in den Nenner', () => {
+    const s = run('frac k3 down k4');
+    expect(s.tokens).toEqual(['F(', '3', 'F|', '4', 'F)']); expect(value(run('eq', s))).toBe(0.75);
+  });
+  it('▲ vom Nenner zurück in den Zähler', () => expect(run('k1 frac k4 up k2').tokens).toEqual(['F(', '1', '2', 'F|', '4', 'F)']));
+  it('▼ im Nenner bleibt stehen (kein REPLAY)', () => {
+    const s = run('k9 eq ac k1 frac k4 down');
+    expect(s.shown).toBe(false); expect(s.tokens).toEqual(['F(', '1', 'F|', '4', 'F)']);
+  });
+  it('verschachtelt: innerster Bruch zuerst', () => {
+    // Zähler enthält 1/2, Cursor im inneren Zähler → ▼ in inneren Nenner
+    const s = run('frac frac k1 down k2 down');
+    expect(s.tokens).toEqual(['F(', 'F(', '1', 'F|', '2', 'F)', 'F|', 'F)']);
+    expect(s.cursor).toBe(7);  // innerer Nenner → beim zweiten ▼ in den äußeren Nenner
+  });
+  it('gemischter Bruch', () => expect(value(run('shift frac k2 right k1 down k4 eq'))).toBe(2.25));
+  it('außerhalb von Brüchen weiter REPLAY', () => expect(run('k5 eq ac up').tokens).toEqual(['5']));
+});

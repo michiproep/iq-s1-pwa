@@ -63,7 +63,7 @@ SHIFT und ALPHA gelten nur für den **nächsten** Tastendruck. Ein zweiter Druck
 | Überschreiben statt Einfügen (umschalten) | SHIFT `DEL` (INS) |
 | Eingabe löschen | `AC` |
 | Ausschalten / Einschalten | SHIFT `AC` (OFF) / `ON` |
-| Frühere Rechnungen anzeigen | ▲ ▼ (REPLAY) |
+| Frühere Rechnungen anzeigen | ▲ ▼ (REPLAY), außer der Cursor steht in einem Bruch |
 | Letzte Rechnung bearbeiten | nach dem Ergebnis ◀ oder ▶ |
 
 **Weiterrechnen mit dem Ergebnis:** Beginnt man direkt nach einem Ergebnis mit einem Rechenzeichen (z. B. `+`, `×`, `x²`), setzt der Rechner automatisch `Ans` davor. Beginnt man mit einer Ziffer, startet eine neue Rechnung.
@@ -88,6 +88,7 @@ Wie am Gerät erscheinen Brüche, Wurzeln, Potenzen, log und Betrag als **Formel
 | Betrag | `Abs` | Betragsstriche \|x\| |
 
 - **Zwischen den Feldern wechseln:** ◀ ▶. Mit ▶ am Ende eines Feldes geht es ins nächste Feld bzw. hinter die Vorlage.
+- **Im Bruch:** ▼ springt vom Zähler in den Nenner, ▲ vom Nenner in den Zähler (bei verschachtelten Brüchen zuerst im innersten). Außerhalb von Brüchen blättern ▲ ▼ wie gewohnt im Verlauf (REPLAY).
 - **Zahl vor ▭/▭:** Steht direkt vor dem Cursor eine Zahl oder ein Ausdruck wie `4√2`, wird er automatisch zum Zähler, und der Cursor springt in den Nenner. Direkt nach einem Ergebnis wird `Ans` zum Zähler.
 - **Vorlage entfernen:** `DEL` am Anfang eines Feldes löst die Vorlage auf. Der eingegebene Inhalt bleibt erhalten.
 - **Schließende Klammern** am Ende dürfen fehlen, etwa bei `sin(30`. Sie werden beim Rechnen ergänzt.
