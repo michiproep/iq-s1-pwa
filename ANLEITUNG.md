@@ -215,6 +215,7 @@ Beispiel: `7` SHIFT `RCL` `(−)` speichert 7 in A. Danach ergibt ALPHA `(−)` 
 | 4 | PerD | Periodische Dezimalzahlen? 1:EIN 2:AUS – mit EIN zeigt S⇔D einen Bruch als periodische Dezimalzahl, z. B. ⅙ → 0,16 mit Strich über der 6 |
 | 5 | AbAut | Abschaltautomatik: 1:10 Min. (Standard) 2:60 Min. ohne Tastendruck, danach mit `ON` wieder einschalten; Speicher bleiben erhalten |
 | 6 | ◀KNTR▶ | Display-Kontrast: ◀ heller, ▶ dunkler, `=` fertig |
+| 7 | Vibr | Vibration beim Tastendruck? 1:EIN (Standard) 2:AUS – gibt es nur in dieser App, nicht am Gerät. Android vibriert kurz, iPhone ab iOS 18 gibt einen leichten Haptik-Tick, am PC passiert nichts |
 
 **Im Modus Linear:**
 - `▭/▭` fügt das Bruchzeichen ⌟ ein (`1⌟3+1⌟6` = 0,5). SHIFT `▭/▭` erzeugt gemischte Brüche (`2⌟1⌟2`).

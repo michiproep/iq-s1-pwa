@@ -56,7 +56,7 @@ await check('Eingabezeile mit Exponent', ['2', 'Komma', '5', 'x Quadrat'], '2,52
 await has('… Exponent hochgestellt', '.input .np');
 await check('MODE-Menü', ['MODE'], /1:COMP2:STAT3:TABLE4:BASE-N/, '.lcd');
 await check('SETUP Seite 1 wie am Gerät', ['SHIFT', 'MODE'], '1:Mth2D2:Linear3:Deg4:Rad5:Gra6:Fix7:Sci8:Norm▼', '.lcd');
-await check('SETUP Seite 2 mit ▼', ['SHIFT', 'MODE', 'Nach unten'], '1:ab/c2:d/c3:STAT4:PerD5:AbAut6:◀KNTR▶▲', '.lcd');
+await check('SETUP Seite 2 mit ▼', ['SHIFT', 'MODE', 'Nach unten'], '1:ab/c2:d/c3:STAT4:PerD5:AbAut6:◀KNTR▶7:Vibr▲', '.lcd');
 await check('PerD: 1/6 periodisch', ['SHIFT', 'MODE', 'Nach unten', '4', '1', '1', 'Bruch', '6', 'gleich', 'S D'], '0,16');
 await has('… mit Überstrich über der Periode', '.result .ovl');
 await keys('AC', 'SHIFT', 'MODE', 'Nach unten', '4', '2');

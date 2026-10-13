@@ -148,8 +148,9 @@ main { position: relative; flex: none; }
 }
 .key.pillL { border-radius: 19px 7px 7px 19px / 18px 9px 9px 18px; box-shadow: inset 2px 1px 0 #5d5a59, 0 0 0 1px #2f2a28, 0 2px 0 1px #2c2725; }
 .key.pillR { border-radius: 7px 19px 19px 7px / 9px 18px 18px 9px; box-shadow: inset -1px 1px 0 #555150, 0 0 0 1px #2f2a28, 0 2px 0 1px #2c2725; }
-.key:active, .pad:active { filter: brightness(.82); }
-.key:active { transform: translateY(1px); }
+/* .down setzt feedback.ts per Pointer-Events (iOS zeigt :active bei Touch kaum) */
+.key:active, .key.down, .pad:active, .pad.down { filter: brightness(.82); }
+.key:active, .key.down { transform: translateY(1px); }
 .key:focus-visible { box-shadow: 0 0 0 2px #fff; }
 .f-sans { font-family: Roboto, Arial, Helvetica, sans-serif; }
 .f-cond { font-family: 'Roboto Condensed', 'Arial Narrow', sans-serif; }

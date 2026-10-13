@@ -135,7 +135,7 @@ describe('SETUP wie am Gerät', () => {
     expect(s.menu?.items.slice(0, 8).map(i => i.label)).toEqual(['Mth2D', 'Linear', 'Deg', 'Rad', 'Gra', 'Fix', 'Sci', 'Norm']);
     const p2 = run('down', s);
     expect(p2.menu?.top).toBe(8);
-    expect(p2.menu?.items.slice(8).map(i => i.label)).toEqual(['ab/c', 'd/c', 'STAT', 'PerD', 'AbAut', '◀KNTR▶']);
+    expect(p2.menu?.items.slice(8).map(i => i.label)).toEqual(['ab/c', 'd/c', 'STAT', 'PerD', 'AbAut', '◀KNTR▶', 'Vibr']);
   });
   it('Seite 2: Nummerierung beginnt bei 1 (1 = ab/c)', () => expect(run('shift mode down k1').mixedOut).toBe(true));
   it('▲ zurück auf Seite 1', () => expect(run('shift mode down up k4').angle).toBe('RAD'));
@@ -153,6 +153,11 @@ describe('SETUP wie am Gerät', () => {
   it('STAT Häufigkeit: Wert;Anzahl mit M+', () => {
     const s = run('shift mode down k3 k1 mode k2 k5 shift rpar k3 mplus k2 mplus');
     expect(s.freq).toBe(true); expect(s.stats).toEqual([5, 5, 5, 2]);
+  });
+  it('Vibration: Standard EIN, abschaltbar, Setup-Reset schaltet wieder ein', () => {
+    expect(initialState().vibrate).toBe(true);
+    const off = run('shift mode down k7 k2');
+    expect(off.vibrate).toBe(false); expect(run('shift k9 k1 eq', off).vibrate).toBe(true);
   });
   it('AbAut 60 Minuten', () => expect(run('shift mode down k5 k2').autoOff).toBe(60));
   it('Kontrast mit ◀▶, = beendet', () => {

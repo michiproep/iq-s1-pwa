@@ -8,6 +8,7 @@ import {initialState, MENU_PAGE, press, tableRows, type State} from './calc';
 import {asFraction, engParts, exactForm, factorize, formatParts, fractionText, recurring, toBase, toDMS} from './engine';
 import {ExactView, Formula, Recurring} from './natural';
 import {KEYS, type KeySpec, type Label} from './keys';
+import {haptic, pressHandlers} from './feedback';
 
 const REF_W = 478, REF_H = 929;
 
@@ -124,7 +125,7 @@ function Key({k, onPress}: {k: KeySpec; onPress: (id: string) => void}) {
     {k.labels?.map((l, i) => <LabelView key={i} l={l}/>)}
     <button type="button" aria-label={k.aria} className={`key ${k.kind} f-${k.font ?? 'sans'}`}
       style={{left: k.x, top: k.y, width: k.w, height: k.h, fontSize: k.fs}}
-      onMouseDown={e => e.preventDefault() /* kein Fokus per Maus */} onClick={() => onPress(k.id)}>
+      {...pressHandlers} onMouseDown={e => e.preventDefault() /* kein Fokus per Maus */} onClick={() => onPress(k.id)}>
       <span className="face">{k.face}</span>
     </button>
   </>;
@@ -144,7 +145,7 @@ function DPad({onPress}: {onPress: (id: string) => void}) {
     </defs>
     {pads.map(([id, pts, aria]) => <polygon key={id} points={pts} role="button" aria-label={aria} className="pad"
       fill={`url(#${id === 'left' ? 'gL' : id === 'right' ? 'gR' : 'gV'})`} stroke={id === 'left' ? '#46423f' : id === 'right' ? '#464241' : '#443f3f'}
-      strokeWidth={5} strokeLinejoin="round" onClick={() => onPress(id)}/>)}
+      strokeWidth={5} strokeLinejoin="round" {...pressHandlers} onClick={() => onPress(id)}/>)}
     <g className="dpadText" pointerEvents="none">
       <polygon points="58.5,19 63.5,25 53.5,25" fill="#fff"/>
       <polygon points="53.5,109 63.5,109 58.5,115" fill="#fff"/>
@@ -165,7 +166,10 @@ const KEYBOARD: Record<string, string[]> = {
 function App() {
   const [s, setS] = useState<State>(initialState);
   const [scale, setScale] = useState(1);
-  const onPress = (id: string) => setS(st => press(st, id));
+  const onPress = (id: string) => {
+    if (s.vibrate) haptic();
+    setS(st => press(st, id));
+  };
 
   useEffect(() => {
     const fit = () => setScale(Math.min(window.innerWidth / REF_W, window.innerHeight / REF_H));

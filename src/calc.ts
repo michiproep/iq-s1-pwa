@@ -18,8 +18,9 @@ type TablePhase = 'f' | 'start' | 'end' | 'step' | 'list';
 
 export interface State {
   on: boolean; mode: Mode; base: Base; angle: Angle; fmt: NumFormat; mixedOut: boolean;
-  /** SETUP: Mth2D (Lehrbuch) oder Linear, Häufigkeit in STAT, periodische Dezimalzahlen, Abschaltautomatik (Minuten), Kontrast 0–10 */
-  math2d: boolean; freq: boolean; perD: boolean; autoOff: 10 | 60; contrast: number;
+  /** SETUP: Mth2D (Lehrbuch) oder Linear, Häufigkeit in STAT, periodische Dezimalzahlen, Abschaltautomatik (Minuten), Kontrast 0–10,
+   *  Vibration beim Tastendruck (nur PWA, nicht am Gerät) */
+  math2d: boolean; freq: boolean; perD: boolean; autoOff: 10 | 60; contrast: number; vibrate: boolean;
   tokens: string[]; cursor: number; insert: boolean; prefill?: boolean;
   shift: boolean; alpha: boolean; hyp: boolean; pending: 'STO' | 'RCL' | null;
   shown: boolean; result: Result | null; view: View; engExp: number; error: string | null; info: string[] | null;
@@ -31,7 +32,7 @@ export interface State {
 
 export const initialState = (): State => ({
   on: true, mode: 'COMP', base: 10, angle: 'DEG', fmt: {mode: 'NORM', digits: 1}, mixedOut: false,
-  math2d: true, freq: false, perD: false, autoOff: 10, contrast: 5,
+  math2d: true, freq: false, perD: false, autoOff: 10, contrast: 5, vibrate: true,
   tokens: [], cursor: 0, insert: true, shift: false, alpha: false, hyp: false, pending: null,
   shown: false, result: null, view: 'auto', engExp: 0, error: null, info: null,
   ans: 0, vars: Object.fromEntries(VARS.map(v => [v, 0])), history: [], histPos: -1, stats: [],
@@ -202,7 +203,7 @@ function trig(s: State, name: 'sin' | 'cos' | 'tan', inverse: boolean): State {
 function reset(s: State, what: 'setup' | 'memory' | 'all'): State {
   const fresh = initialState();
   if (what === 'setup') return {
-    ...s, angle: fresh.angle, fmt: fresh.fmt, mixedOut: false, math2d: true, freq: false, perD: false, autoOff: 10, contrast: 5,
+    ...s, angle: fresh.angle, fmt: fresh.fmt, mixedOut: false, math2d: true, freq: false, perD: false, autoOff: 10, contrast: 5, vibrate: true,
     menu: null, info: ['Setup gelöscht'],
   };
   if (what === 'memory') return {...s, vars: fresh.vars, ans: 0, stats: [], menu: null, info: ['Speicher gelöscht']};
@@ -231,6 +232,8 @@ function setupMenu(): Menu {
     ['PerD', s => ({...s, menu: choice('Periodische Dez.?', [['EIN', st => ({...st, perD: true, menu: null})], ['AUS', st => ({...st, perD: false, menu: null})]])})],
     ['AbAut', s => ({...s, menu: choice('Abschaltautomatik', [['10 Min.', st => ({...st, autoOff: 10, menu: null})], ['60 Min.', st => ({...st, autoOff: 60, menu: null})]])})],
     ['◀KNTR▶', s => ({...s, menu: {heading: 'KONTRAST', items: [], top: 0, contrast: true}})],
+    // nur in der PWA: Vibration beim Tastendruck
+    ['Vibr', s => ({...s, menu: choice('Vibration?', [['EIN', st => ({...st, vibrate: true, menu: null})], ['AUS', st => ({...st, vibrate: false, menu: null})]])})],
   ], 'SETUP');
 }
 
