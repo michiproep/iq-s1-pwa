@@ -67,6 +67,18 @@ await has('… mit Wurzelzeichen', '.result .nr');
 await check('sin 75° = (√6+√2)/4', ['sin', '7', '5', 'gleich'], '6+24');
 await check('1/2 + √3/2', ['1', 'Bruch', '2', 'Nach rechts', 'plus', 'Wurzel', '3', 'Nach rechts', 'Bruch', '2', 'gleich'], '1+32');
 await check('Summe per S⇔D dezimal', ['1', 'plus', 'Wurzel', '2', 'gleich', 'S D'], '2,414213562');
+// Hohe Eingabe wie am Gerät: Eingabe nutzt die ganze Höhe, Ergebnis steht unten rechts, nichts wird abgeschnitten
+const tall = ['Wurzel', '4', 'Bruch', '2', 'Nach rechts', 'plus', 'Bruch', '1', 'Bruch', '2', 'Nach rechts', 'Nach rechts', '2'];
+for (const [name, extra, expected] of [['√(4/2 + (1/2)/2)', [], '32'], ['… + 3333333', ['Nach rechts', 'Nach rechts', 'plus', ...'3333333'], '3333334,5']]) {
+  await check(`Hohe Eingabe ${name}`, [...tall, ...extra, 'gleich'], expected);
+  const fits = await page.evaluate(() => {
+    const lcd = document.querySelector('.lcd').getBoundingClientRect(), inp = document.querySelector('.input'), r = document.createRange();
+    r.selectNodeContents(document.querySelector('.result'));
+    const res = r.getBoundingClientRect();  // Inhalt des Ergebnisses, auch wenn es nur Text ist
+    return inp.scrollHeight <= inp.clientHeight + 1 && inp.scrollWidth <= inp.clientWidth + 1 && res.bottom <= lcd.bottom + 0.5 && res.top >= lcd.top;
+  });
+  console.log(`${fits ? '✓' : '✗'} … Eingabe und Ergebnis vollständig sichtbar`); if (!fits) failed++;
+}
 await check('Ans fortsetzen', ['4', 'gleich', 'plus', '1', 'gleich'], '5');
 await check('REPLAY', ['7', 'gleich', 'AC', 'Nach oben'], '7', '.input');
 await keys('AC');
@@ -84,7 +96,7 @@ console.log(`${linksOk ? '✓' : '✗'} Menü: ${links.map(l => l.split('|')[0])
 const layoutOk = before === await stageBox();
 console.log(`${layoutOk ? '✓' : '✗'} Menü verschiebt den Rechner nicht`); if (!layoutOk) failed++;
 await page.screenshot({path: 'test-results/e2e-menu.png'});
-await page.locator('.result').tap();
+await page.locator('.lcd').tap();
 const closed = await page.locator('.appMenu a').count() === 0;
 console.log(`${closed ? '✓' : '✗'} Menü schließt bei Tipp daneben`); if (!closed) failed++;
 await page.screenshot({path: 'test-results/e2e-phone.png'});

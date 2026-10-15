@@ -52,10 +52,15 @@ function InputLine({s, prompt}: {s: State; prompt?: string}) {
   useLayoutEffect(() => {
     const box = ref.current, cur = box?.querySelector('.cursor') as HTMLElement | null;
     if (!box) return;
-    if (!cur) { box.scrollLeft = 0; return; }
+    if (!cur) { box.scrollLeft = 0; box.scrollTop = 0; return; }
     const l = cur.offsetLeft, r = l + 12;
     if (l < box.scrollLeft) box.scrollLeft = Math.max(0, l - 30);
     else if (r > box.scrollLeft + box.clientWidth) box.scrollLeft = r - box.clientWidth + 2;
+    // Senkrecht nur, wenn die Eingabe höher als das Display ist (mehrfach gestapelte Brüche); k = Skalierung der Bühne
+    const br = box.getBoundingClientRect(), cr = cur.getBoundingClientRect(), k = br.height / box.offsetHeight || 1;
+    const top = (cr.top - br.top) / k + box.scrollTop, bottom = top + cr.height / k;
+    if (top < box.scrollTop) box.scrollTop = top;
+    else if (bottom > box.scrollTop + box.clientHeight) box.scrollTop = bottom - box.clientHeight;
   });
   const showCursor = !s.shown && !s.error;
   return <div className="input" ref={ref}>{prompt && <span className="prompt">{prompt}</span>}

@@ -64,7 +64,7 @@ main { position: relative; flex: none; }
 .ind { display: flex; gap: 7px; font-size: 12px; height: 15px; line-height: 15px; font-weight: 700; }
 .ind .off { visibility: hidden; }
 .ind .grow { flex: 1; }
-.input { margin-top: 2px; min-height: 30px; line-height: 30px; font-size: 22px; white-space: nowrap; overflow: hidden; padding: 2px 0; }
+.input { margin-top: 2px; min-height: 30px; flex: 0 1 auto; line-height: 30px; font-size: 22px; white-space: nowrap; overflow: hidden; padding: 2px 0; }
 
 /* Lehrbuch-Darstellung */
 .nf { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; line-height: 1.12; margin: 0 2px; }
@@ -86,7 +86,9 @@ main { position: relative; flex: none; }
 .cursor { display: inline-block; width: 2px; height: 24px; margin: 0 -1px; vertical-align: -4px; background: var(--lcd-ink); animation: blink 1s steps(1) infinite; }
 .cursor.ovr { width: 12px; height: 3px; vertical-align: -2px; margin: 0 -12px 0 0; }
 @keyframes blink { 50% { opacity: 0; } }
-.result { margin-top: auto; text-align: right; font-size: 30px; line-height: 40px; white-space: nowrap; overflow: hidden; display: flex; justify-content: flex-end; align-items: center; min-height: 40px; }
+/* Wie am Gerät: Das Ergebnis steht unten rechts über der Eingabefläche, statt ihr Höhe wegzunehmen.
+   Hohe Eingaben (gestapelte Brüche) nutzen so die ganze Displayhöhe. */
+.result { position: absolute; left: 8px; right: 8px; bottom: 6px; pointer-events: none; text-align: right; font-size: 30px; line-height: 40px; white-space: nowrap; overflow: hidden; display: flex; justify-content: flex-end; align-items: center; min-height: 40px; }
 .result .nf { line-height: 1.08; }
 .result sup, .input sup { font-size: .55em; }
 .e10 { margin-left: 2px; }
