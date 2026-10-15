@@ -166,3 +166,11 @@ main { position: relative; flex: none; }
 .padHit { position: absolute; cursor: pointer; touch-action: manipulation; }
 .padHit:active, .padHit.down { background: rgba(0, 0, 0, .18); }  /* wirkt wie brightness(.82) auf dem Trapez */
 .dpadText text { fill: #ececec; font: 700 10.5px Roboto, Arial, sans-serif; letter-spacing: 1.1px; }
+
+/* Menü oben links: per Portal in <body>, position: fixed → außerhalb des Rechners, verschiebt nichts */
+.appMenu { position: fixed; z-index: 10; top: max(4px, env(safe-area-inset-top)); left: max(4px, env(safe-area-inset-left)); font: 15px/1.2 Roboto, Arial, sans-serif; }
+.appMenu button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: #8a8685; cursor: pointer; }
+.appMenu button:hover, .appMenu button[aria-expanded="true"] { background: rgba(0, 0, 0, .06); color: #423d3c; }
+.appMenu ul { list-style: none; margin: 4px 0 0; padding: 4px 0; min-width: 170px; background: #fff; border-radius: 10px; box-shadow: 0 4px 16px rgba(0, 0, 0, .18), 0 0 0 1px rgba(0, 0, 0, .06); }
+.appMenu a { display: block; padding: 11px 16px; color: #1d1d1d; text-decoration: none; }
+.appMenu a:hover, .appMenu a:focus-visible { background: #f0efee; outline: none; }

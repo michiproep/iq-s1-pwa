@@ -73,6 +73,20 @@ await keys('AC');
 await page.keyboard.type('12*3'); await page.keyboard.press('Enter');
 console.log((await text('.result')) === '36' ? '✓ Tastatureingabe 12*3=36' : (failed++, '✗ Tastatureingabe'));
 await keys('AC');
+
+// Menü oben links: darf den Rechner nicht verschieben, Links öffnen in neuem Fenster bzw. im Browser
+const stageBox = () => page.locator('.stage').boundingBox().then(b => JSON.stringify(b));
+const before = await stageBox();
+await page.getByRole('button', {name: 'Menü'}).tap();
+const links = await page.locator('.appMenu a').evaluateAll(as => as.map(a => `${a.textContent}|${a.target}|${a.rel}|${new URL(a.href).host}`));
+const linksOk = links.length === 3 && links.every(l => /\|_blank\|noopener noreferrer\|github\.com$/.test(l));
+console.log(`${linksOk ? '✓' : '✗'} Menü: ${links.map(l => l.split('|')[0]).join(', ')} (target=_blank, GitHub)`); if (!linksOk) failed++;
+const layoutOk = before === await stageBox();
+console.log(`${layoutOk ? '✓' : '✗'} Menü verschiebt den Rechner nicht`); if (!layoutOk) failed++;
+await page.screenshot({path: 'test-results/e2e-menu.png'});
+await page.locator('.result').tap();
+const closed = await page.locator('.appMenu a').count() === 0;
+console.log(`${closed ? '✓' : '✗'} Menü schließt bei Tipp daneben`); if (!closed) failed++;
 await page.screenshot({path: 'test-results/e2e-phone.png'});
 await browser.close();
 if (failed) { console.error(`${failed} Prüfung(en) fehlgeschlagen`); process.exit(1); }

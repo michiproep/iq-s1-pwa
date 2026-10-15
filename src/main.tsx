@@ -1,4 +1,5 @@
 import React, {useEffect, useLayoutEffect, useRef, useState, type ReactNode} from 'react';
+import {createPortal} from 'react-dom';
 import {createRoot} from 'react-dom/client';
 import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/700.css';
@@ -183,6 +184,29 @@ const KEYBOARD: Record<string, string[]> = {
   's': ['sin'], 'c': ['cos'], 't': ['tan'], 'l': ['ln'], 'p': ['shift', 'exp'],
 };
 
+const REPO = 'https://github.com/michiproep/iq-s1-pwa';
+const LINKS: [string, string][] = [['Anleitung', `${REPO}/blob/main/ANLEITUNG.md`], ['Fehler melden', `${REPO}/issues`], ['Info', `${REPO}#readme`]];
+
+/** Menü oben links. Es hängt per Portal direkt in <body> und ist position: fixed, liegt also außerhalb von #root
+ *  und des skalierten Rechners und kann dessen Layout nicht verschieben. Die Links zeigen auf GitHub, also außerhalb
+ *  des PWA-Bereichs, und öffnen mit target="_blank": Als installierte PWA gehen sie im Browser auf. */
+function AppMenu() {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: PointerEvent) => { if (!(e.target as Element).closest?.('.appMenu')) setOpen(false); };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [open]);
+  return createPortal(<nav className="appMenu">
+    <button type="button" aria-label="Menü" aria-expanded={open} aria-controls="appMenuList" onClick={() => setOpen(o => !o)}>
+      <svg viewBox="0 0 18 14" width={18} height={14} aria-hidden="true"><path d="M0 1h18M0 7h18M0 13h18" stroke="currentColor" strokeWidth={2}/></svg>
+    </button>
+    {open && <ul id="appMenuList">{LINKS.map(([t, href]) =>
+      <li key={t}><a href={href} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)}>{t}</a></li>)}</ul>}
+  </nav>, document.body);
+}
+
 function App() {
   const [s, setS] = useState<State>(initialState);
   const [scale, setScale] = useState(1);
@@ -200,7 +224,7 @@ function App() {
   }, [s]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.ctrlKey || e.metaKey || e.altKey || (e.target as Element).closest?.('.appMenu')) return;
       const seq = /^[0-9]$/.test(e.key) ? ['k' + e.key] : KEYBOARD[e.key];
       if (!seq) return;
       e.preventDefault();
@@ -221,6 +245,7 @@ function App() {
       <DPad vibrate={s.vibrate} onPress={onPress}/>
       {KEYS.map(k => <Key key={k.id} k={k} vibrate={s.vibrate} onPress={onPress}/>)}
     </div>
+    <AppMenu/>
   </main>;
 }
 

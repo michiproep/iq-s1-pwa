@@ -25,7 +25,7 @@ const browser = await chromium.launch({executablePath});
 const page = await browser.newPage({viewport: {width, height}, deviceScaleFactor: 1});
 await page.goto(url);
 await page.evaluate(() => document.fonts.ready);
-await page.addStyleTag({content: '.lcd{visibility:hidden}'}); // Displayinhalt ausblenden (Foto zeigt leeres Display)
+await page.addStyleTag({content: '.lcd,.appMenu{visibility:hidden}'}); // Displayinhalt und Menü ausblenden (nicht auf dem Foto)
 await page.waitForTimeout(300);
 fs.mkdirSync(outDir, {recursive: true});
 const shot = PNG.sync.read(await page.screenshot());
