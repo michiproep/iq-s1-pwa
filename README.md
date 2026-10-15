@@ -19,7 +19,7 @@ npm run preview      # Produktionsbuild lokal ansehen (http://localhost:4173)
 
 Installierbar ist die PWA über HTTPS oder `localhost`. Der Service Worker speichert alle Ressourcen inklusive Schriften für den Offlinebetrieb.
 
-**Deployment:** Jeder Push auf `main` startet den Workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml). Er führt die Unit-Tests aus, baut mit `BASE_PATH=/<repo-name>/` und veröffentlicht auf GitHub Pages. Lokal entspricht das `BASE_PATH=/iq-s1-pwa/ npm run build`. Unter Git Bash auf Windows muss `MSYS_NO_PATHCONV=1` davorstehen, sonst wird der Pfad umgewandelt.
+**Deployment:** Jeder Push auf `main` startet den Workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml). Er führt die Unit-Tests aus, baut mit `BASE_PATH=/<repo-name>/`, veröffentlicht auf GitHub Pages und prüft die Live-Seite danach mit dem Smoke-Test. Lokal entspricht das `BASE_PATH=/iq-s1-pwa/ npm run build`. Unter Git Bash auf Windows muss `MSYS_NO_PATHCONV=1` davorstehen, sonst wird der Pfad umgewandelt.
 
 ## Tests
 
@@ -28,10 +28,12 @@ npm test                                         # 327 Unit-Tests: Funktionskata
 npm test -- -u                                   # zusätzlich docs/TESTABDECKUNG.md neu erzeugen
 npm run test:e2e -- http://localhost:5173/       # Tippt Tasten per Touch im Browser und prüft die Anzeige
 npm run test:visual -- http://localhost:5173/    # Pixelvergleich mit dem Referenzfoto
+npm run test:smoke                               # Smoke-Test gegen die Live-Seite auf GitHub Pages
 ```
 
 🧪 **[Testabdeckung der Rechenfunktionen](docs/TESTABDECKUNG.md)**: Jede Tastenbelegung (primär, SHIFT, ALPHA, STO/RCL, BASE-N), jeder Menüeintrag und jede Vorlage mit Tastenfolge, erwartetem Ergebnis und Status. Der Funktionskatalog [`src/funktionen.test.ts`](src/funktionen.test.ts) prüft automatisch, dass keine Taste, kein Menüeintrag und kein Token des Rechenkerns ohne Testfall bleibt. Die Datei wird aus dem Katalog erzeugt, `npm test` schlägt fehl, wenn sie veraltet ist. Bekannte Fehler sind dort mit ihrem Issue verlinkt.
 
+- `test:smoke` prüft die Live-Seite (ohne Argument https://michiproep.github.io/iq-s1-pwa/): Sie lädt ohne Fehler in Konsole und Netzwerk, alle Tasten sind da, der Rechner rechnet, Manifest und Service Worker sind aktiv und die Menü-Links erreichbar. Der Workflow führt ihn nach jedem Deployment aus. Vorher wartet er, bis die Live-Seite genau den gerade gebauten Stand ausliefert (Hash der `index.html` in `EXPECT_INDEX_SHA256`).
 - `test:e2e` läuft standardmäßig in Chromium. Mit `BROWSER=webkit` nutzt er die Safari-Engine, gesucht wird sie über `WEBKIT_PATH` oder in `ext/webkit-win64/` (nicht im Repository). Echte iOS-Touch-Verarbeitung bildet WebKit unter Windows allerdings nicht ab; ein Test auf dem iPhone bleibt maßgeblich.
 - `test:e2e` und `test:visual` brauchen einen laufenden Server (`npm run dev` oder `npm run preview`) und ein installiertes Chrome oder Edge. Ein anderer Browserpfad lässt sich über die Umgebungsvariable `CHROME_PATH` angeben. Ohne URL-Argument wird `http://localhost:5173/` verwendet.
 - `test:visual` vergleicht mit dem Referenzfoto `doc/images/fa1baf658f2e03a563050fc49235c4866037454d189e0366a039a9835fbcdd61.png`. Das Foto ist **nicht im Repository enthalten**, weil die Bildrechte ungeklärt sind. Fehlt es, wird der Test übersprungen. Den Display-Inhalt blendet er aus, weil das Foto ein leeres Display zeigt. Die Ergebnisse landen in `test-results/` (`side-by-side.png`, `diff.png`, `screenshot.png`). Der Test schlägt fehl, wenn mehr als 6 % der Pixel abweichen (änderbar mit `VISUAL_LIMIT`). Aktuell sind es etwa 4,9 %, fast ausschließlich Schriftglättung (Webfont gegenüber Foto) und der neutrale Schriftzug „IQ-S1“ statt des Herstellernamens.
