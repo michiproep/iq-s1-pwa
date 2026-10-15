@@ -24,10 +24,13 @@ Installierbar ist die PWA über HTTPS oder `localhost`. Der Service Worker speic
 ## Tests
 
 ```bash
-npm test                                         # 122 Unit-Tests: Rechenkern, Tastenfolgen, Vorlagen, SETUP, exakte Formen
+npm test                                         # 327 Unit-Tests: Funktionskatalog, Rechenkern, Tastenfolgen, Vorlagen, SETUP, exakte Formen
+npm test -- -u                                   # zusätzlich docs/TESTABDECKUNG.md neu erzeugen
 npm run test:e2e -- http://localhost:5173/       # Tippt Tasten per Touch im Browser und prüft die Anzeige
 npm run test:visual -- http://localhost:5173/    # Pixelvergleich mit dem Referenzfoto
 ```
+
+🧪 **[Testabdeckung der Rechenfunktionen](docs/TESTABDECKUNG.md)**: Jede Tastenbelegung (primär, SHIFT, ALPHA, STO/RCL, BASE-N), jeder Menüeintrag und jede Vorlage mit Tastenfolge, erwartetem Ergebnis und Status. Der Funktionskatalog [`src/funktionen.test.ts`](src/funktionen.test.ts) prüft automatisch, dass keine Taste, kein Menüeintrag und kein Token des Rechenkerns ohne Testfall bleibt. Die Datei wird aus dem Katalog erzeugt, `npm test` schlägt fehl, wenn sie veraltet ist. Bekannte Fehler sind dort mit ihrem Issue verlinkt.
 
 - `test:e2e` läuft standardmäßig in Chromium. Mit `BROWSER=webkit` nutzt er die Safari-Engine, gesucht wird sie über `WEBKIT_PATH` oder in `ext/webkit-win64/` (nicht im Repository). Echte iOS-Touch-Verarbeitung bildet WebKit unter Windows allerdings nicht ab; ein Test auf dem iPhone bleibt maßgeblich.
 - `test:e2e` und `test:visual` brauchen einen laufenden Server (`npm run dev` oder `npm run preview`) und ein installiertes Chrome oder Edge. Ein anderer Browserpfad lässt sich über die Umgebungsvariable `CHROME_PATH` angeben. Ohne URL-Argument wird `http://localhost:5173/` verwendet.
@@ -43,6 +46,8 @@ npm run test:visual -- http://localhost:5173/    # Pixelvergleich mit dem Refere
 | `src/natural.tsx` | Lehrbuch-Darstellung: Brüche, Wurzeln, Exponenten, exakte Ergebnisse |
 | `src/main.tsx` | Darstellung: Gehäuse, Display, Steuerkreuz, Skalierung, PC-Tastatur |
 | `src/style.css` | Farben und Formen |
+| `src/*.test.ts` | Unit-Tests; `funktionen.test.ts` ist der Funktionskatalog |
+| `docs/TESTABDECKUNG.md` | aus dem Funktionskatalog erzeugte Testübersicht |
 | `scripts/` | Browser- und Pixeltests |
 
 ## Funktionsumfang (Kurzfassung)

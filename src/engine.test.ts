@@ -17,6 +17,10 @@ describe('Grundrechenarten', () => {
     expect(ev('3{²}')).toBe(9); expect(ev('2{³}')).toBe(8); expect(ev('4{⁻¹}')).toBe(0.25); expect(ev('2{^(}10)')).toBe(1024);
   });
   it('Fakultät', () => expect(ev('5!')).toBe(120));
+  it('Fakultät nur für ganze Zahlen 0–69 (#1)', () => {
+    expect(ev('0!')).toBe(1); expect(ev('(2+1)!')).toBe(6); expect(ev('69!') / 1.711224524e98).toBeCloseTo(1, 9);
+    for (const x of ['2,5!', '70!', '({neg}3)!']) expect(() => ev(x)).toThrow('Math ERROR');
+  });
   it('Exponentialschreibweise', () => {
     expect(ev('1{E}3')).toBe(1000); expect(ev('1÷2{E}3')).toBe(0.0005); expect(ev('5{E}{neg}2')).toBeCloseTo(0.05);
   });

@@ -1,4 +1,4 @@
-import {evaluate, fraction} from 'mathjs';
+import {all, create} from 'mathjs';
 
 export type Angle = 'DEG' | 'RAD' | 'GRA';
 export type Base = 2 | 8 | 10 | 16;
@@ -92,6 +92,11 @@ function fact(n: number) {
   if (!Number.isInteger(n) || n < 0 || n > 69) throw Error('Math ERROR');
   let x = 1; for (let i = 2; i <= n; i++) x *= i; return x;
 }
+
+/** Eigene mathjs-Instanz: x! wie am Gerät nur für ganze Zahlen 0–69 (mathjs rechnet sonst mit der Gammafunktion). */
+const math = create(all);
+math.import({factorial: fact}, {override: true});
+const {evaluate, fraction} = math;
 
 const OPERAND = String.raw`(\d*\.?\d+(?:e-?\d+)?|\([^()]*\))`;
 
