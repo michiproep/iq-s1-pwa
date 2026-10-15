@@ -8,7 +8,7 @@ Eigenständiger, **nicht offizieller** wissenschaftlicher Rechner als PWA. Die O
 
 ## Start
 
-Voraussetzung: Node.js 18 oder neuer (empfohlen 22).
+Voraussetzung: Node.js 18 oder neuer (empfohlen 24, wie im Deployment).
 
 ```bash
 npm install
